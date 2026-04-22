@@ -20,7 +20,7 @@ class User(Document):
 
 # will make changes here we add the cv section and we akso dekete what we added in the cv we just keep a simple inforations in the profile 
 class StudentProfile(Document):
-        user_id = StringFrield(required=True)
+        user_id = StringField(required=True)
         wilaya = StringField(default="")
         bio = StringField(default="")
         avatar_url = StringField(default="")
@@ -29,14 +29,15 @@ class StudentProfile(Document):
         university = StringField(default="")
         major = StringField(default="" , choices=['IT', 'Health', 'Law', 'Commerce','Art', 'Other', ''])
         speciality = StringField(default="")
+        graduation_year = StringField(default="")
         github_link = StringField(default="")
         portfolio_link = StringField(default="")
         skills = ListField(default=[])
-        language = ListField(default=[])
+        languages = ListField(default=[])
         experiences = ListField(default=[])
         certifications = ListField(default=[])
 
-        meta = {'collection': 'student_profiles'}
+        meta = {'collection': 'student_profiles' , 'strict': False}
         
 class CompanyProfile(Document):
         user_id = StringField(required=True)

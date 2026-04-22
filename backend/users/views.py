@@ -1,3 +1,4 @@
+from django.http import FileResponse
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
@@ -447,12 +448,7 @@ def public_company_profile(request, company_id):
 def public_student_profile(request, student_id):
     user = get_user_from_token(request)
     if not user:
-        return Response({'error':'Unauthorized'}, status=status.HTTP_401_UNAUTHORIZED   )
-    
-    #only companies and administration who can see the student profioes 
-    if user.role == 'student':
-        return Response({'error':'Students cannot view other student profiles'}, status=status.HTTP_403_FORBIDDEN)
-    
+        return Response({'error':'Unauthorized'}, status=status.HTTP_401_UNAUTHORIZED   )    
     student = User.objects(id=student_id , role='student').first()
 
     if not student:
@@ -476,6 +472,7 @@ def public_student_profile(request, student_id):
         'portfolio_link': student_profile.portfolio_link if student_profile else '',
         'bio': student_profile.bio if student_profile else '',
         'avatar_url': student_profile.avatar_url if student_profile else '',
+        'cv_url': student_profile.cv_url if student_profile else '',
     })
 
 @api_view(['GET'])
@@ -725,3 +722,75 @@ def save_cv(request):
         'message': 'CV saved and generated successfully!',
         'cv_url': f'/media/cvs/{filename}'
     }, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+def get_cv(request):
+    user = get_user_from_token(request)
+    if not user:
+        return Response({'error': 'Unauthorized'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    if user.role != 'student':
+        return Response({'error': 'Only students can access this'}, status=status.HTTP_403_FORBIDDEN)
+
+    profile = StudentProfile.objects(user_id=str(user.id)).first()
+    if not profile:
+        return Response({'error': 'Profile not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    return Response({
+        'bio': profile.bio,
+        'university': profile.university,
+        'major': profile.major,
+        'speciality': profile.speciality,
+        'graduation_year': profile.graduation_year,
+        'github_link': profile.github_link,
+        'portfolio_link': profile.portfolio_link,
+        'skills': profile.skills,
+        'languages': profile.languages,
+        'experiences': profile.experiences,
+        'certifications': profile.certifications,
+        'cv_url': profile.cv_url,
+    })
+
+
+@api_view(['GET'])
+def download_cv(request):
+    user = get_user_from_token(request)
+    if not user:
+        return Response({'error': 'Unauthorized'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    if user.role != 'student':
+        return Response({'error': 'Only students can download their own CV'}, status=status.HTTP_403_FORBIDDEN)
+
+    profile = StudentProfile.objects(user_id=str(user.id)).first()
+    if not profile or not profile.cv_url:
+        return Response({'error': 'CV not found, please generate your CV first'}, status=status.HTTP_404_NOT_FOUND)
+
+    filepath = os.path.join(settings.BASE_DIR, profile.cv_url.lstrip('/'))
+    if not os.path.exists(filepath):
+        return Response({'error': 'CV file not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    return FileResponse(open(filepath, 'rb'), content_type='application/pdf')
+
+
+@api_view(['GET'])
+def download_student_cv(request, student_id):
+    user = get_user_from_token(request)
+    if not user:
+        return Response({'error': 'Unauthorized'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    if user.role == 'student':
+        return Response({'error': 'Students cannot download other students CV'}, status=status.HTTP_403_FORBIDDEN)
+
+    student = User.objects(id=student_id, role='student').first()
+    if not student:
+        return Response({'error': 'Student not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    profile = StudentProfile.objects(user_id=student_id).first()
+    if not profile or not profile.cv_url:
+        return Response({'error': 'This student has not generated a CV yet'}, status=status.HTTP_404_NOT_FOUND)
+
+    filepath = os.path.join(settings.BASE_DIR, profile.cv_url.lstrip('/'))
+    if not os.path.exists(filepath):
+        return Response({'error': 'CV file not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    return FileResponse(open(filepath, 'rb'), content_type='application/pdf')
