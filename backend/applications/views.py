@@ -1,9 +1,11 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
+
+from notifications import admin
 from .models import Application
 from offers.models import Offer
-from users.models import User
+from users.models import AdministrationProfile, User
 from users.middleware import get_user_from_token 
 from notifications.models import Notification
 from datetime import datetime
@@ -116,188 +118,223 @@ def company_decision(request, application_id):
         return Response({'error': 'Unauthorized'}, status=status.HTTP_401_UNAUTHORIZED)
 
     if user.role != 'company':
-        return Response({'error': 'Only companies can make decisions on applications'}, status=status.HTTP_403_FORBIDDEN)   
-    
+        return Response({'error': 'Only companies can make decisions'}, status=status.HTTP_403_FORBIDDEN)
+
     application = Application.objects(id=application_id, company_id=str(user.id)).first()
     if not application:
-        return Response({'error': 'Application not found'}, status=status.HTTP_404_NOT_FOUND) 
+        return Response({'error': 'Application not found'}, status=status.HTTP_404_NOT_FOUND)
 
     decision = request.data.get('decision')
     if decision not in ['accepted', 'refused']:
-        return Response({'error': 'Decision must be either "accepted" or "refused"'}, status=status.HTTP_400_BAD_REQUEST) 
+        return Response({'error': 'Decision must be accepted or refused'}, status=status.HTTP_400_BAD_REQUEST)
 
     application.status = decision
     application.company_decision_at = datetime.now()
     application.save()
 
+    student = User.objects(id=application.student_id).first()
+    offer = Offer.objects(id=application.offer_id).first()
+    from users.models import CompanyProfile, StudentProfile
+    company_profile = CompanyProfile.objects(user_id=str(user.id)).first()
+    student_profile = StudentProfile.objects(user_id=str(student.id)).first()
 
     if decision == 'accepted':
-        student = User.objects(id=application.student_id).first()
-
         if student.student_type == 'independent':
-            #send real email to independent student
-            offer = Offer.objects(id=application.offer_id).first()
-            from users.models import CompanyProfile, StudentProfile
-            company_profile = CompanyProfile.objects(user_id=str(user.id)).first()
-            student_profile = StudentProfile.objects(user_id=str(student.id)).first()
-            #generate pdf convention for independetn students
-            conventions_dir = os.path.join(settings.BASE_DIR, 'media' , 'conventions') 
-            os.makedirs(conventions_dir, exist_ok=True) 
+            # generate PDF convention for independent student
+            from reportlab.lib.pagesizes import A4
+            from reportlab.pdfgen import canvas
+            from reportlab.lib import colors
+            from reportlab.lib.units import cm
+            
 
-            filename=f"convention_{str(application.id)}.pdf"
-            filepath= os.path.join(conventions_dir, filename)
+            conventions_dir = os.path.join(settings.BASE_DIR, 'media', 'conventions')
+            os.makedirs(conventions_dir, exist_ok=True)
+            filename = f"convention_{str(application.id)}.pdf"
+            filepath = os.path.join(conventions_dir, filename)
 
             c = canvas.Canvas(filepath, pagesize=A4)
-            width, height = A4  
-            
-            c.setFont("Helvetica-Bold", 20)
-            c.drawCentredString(width/2, height - 3*cm, "Internship Convention")
+            width, height = A4
 
-            c.setFont("Helvetica", 12)
-            c.drawCentredString(width/2, height - 4*cm, "Stag.io - Internship Management Platform")                       
-            
-            c.line(2*cm, height - 4.5*cm, width - 2*cm, height - 4.5*cm)
+            # ─── TITLE ───
+            c.setFont("Helvetica-Bold", 22)
+            c.drawCentredString(width/2, height - 1.8*cm, "INTERNSHIP CONVENTION")
+            c.setFont("Helvetica-Bold", 16)
+            c.drawCentredString(width/2, height - 2.8*cm, "BETWEEN")
+            c.setLineWidth(1)
+            c.line(1.5*cm, height - 3.2*cm, width - 1.5*cm, height - 3.2*cm)
 
+            # ─── COMPANY BOX ───
+            c.setLineWidth(0.8)
+            c.rect(1.5*cm, height - 8*cm, width - 3*cm, 4.5*cm)
+            c.setFont("Helvetica-Bold", 9)
+            c.drawString(2*cm, height - 4*cm, "Company (name and address):")
+            c.setFont("Helvetica", 8)
+            c.drawString(2*cm, height - 4.6*cm, f"{company_profile.company_name if company_profile and company_profile.company_name else '.................'}")
+            c.drawString(2*cm, height - 5.1*cm, f"{company_profile.address if company_profile and company_profile.address else '.................'}")
+            c.drawString(2*cm, height - 5.7*cm, "Represented by:")
+            c.drawString(2*cm, height - 6.2*cm, f"Mr/Ms: {company_profile.director_full_name if company_profile and company_profile.director_full_name else '.................'}")
+            c.drawString(2*cm, height - 6.7*cm, f"Tel: {company_profile.phone if company_profile and company_profile.phone else '.....'} Fax: ............")
+
+            # ─── AND ───
             c.setFont("Helvetica-Bold", 14)
-            c.drawString(2*cm, height - 6*cm, "Student Information:")
-            c.setFont("Helvetica", 12)
-            c.drawString(2*cm, height - 7*cm, f"Full Name: {student.full_name}")
-            c.drawString(2*cm, height - 7.8*cm, f"Email: {student.email}")
-            c.drawString(2*cm, height - 8.6*cm, f"Phone Number: {student.phone}")
-            if student_profile:
-                c.drawString(2*cm, height - 9.4*cm, f"Major: {student_profile.major}")
-                c.drawString(2*cm, height - 10.2*cm, f"Wilaya: {student_profile.wilaya}")
+            c.drawCentredString(width/2, height - 9*cm, "AND")
 
-            c.line(2*cm, height - 11*cm, width - 2*cm, height - 11*cm)
-            c.setFont("Helvetica-Bold", 14)
-            c.drawString(2*cm, height - 12*cm, "Company Information:")
-            c.setFont("Helvetica", 12)
-            if company_profile:
-                c.drawString(2*cm, height - 13*cm, f"Company: {company_profile.company_name}")
-                c.drawString(2*cm, height - 13.8*cm, f"Wilaya: {company_profile.wilaya}")
-                c.drawString(2*cm, height - 14.6*cm, f"Industry: {company_profile.industry}")
+            # ─── STUDENT INFORMATION BOX ───
+            student_box_top = height - 9.6*cm
+            student_box_height = 6*cm
+            c.setLineWidth(1.2)
+            c.rect(1.5*cm, student_box_top - student_box_height, width - 3*cm, student_box_height)
 
-            c.line(2*cm, height - 15.4*cm, width - 2*cm, height - 15.4*cm)
+            c.setFont("Helvetica-Bold", 11)
+            title_y = student_box_top - 0.7*cm
+            c.drawCentredString(width/2, title_y, "STUDENT INFORMATION")
+            title_width = c.stringWidth("STUDENT INFORMATION", "Helvetica-Bold", 11)
+            c.setLineWidth(0.8)
+            c.line(width/2 - title_width/2, title_y - 0.15*cm, width/2 + title_width/2, title_y - 0.15*cm)
 
-            c.setFont("Helvetica-Bold", 14)
-            c.drawString(2*cm, height - 16.4*cm, "Internship Information:")
-            c.setFont("Helvetica", 12)
-            if offer:
-                c.drawString(2*cm, height - 17.4*cm, f"Title: {offer.title}")
-                c.drawString(2*cm, height - 18.2*cm, f"Duration: {offer.duration}")
-                c.drawString(2*cm, height - 19*cm, f"Type: {offer.type}")
-                c.drawString(2*cm, height - 19.8*cm, f"Wilaya: {offer.wilaya}")
+            c.setFont("Helvetica", 9.5)
+            field_y = student_box_top - 1.4*cm
+            line_gap = 0.6*cm
 
-            c.line(2*cm, height - 20.6*cm, width - 2*cm, height - 20.6*cm)
+            c.drawString(2*cm, field_y, f"Full Name: {student.full_name}")
+            field_y -= line_gap
+            c.drawString(2*cm, field_y, f"Email: {student.email}")
+            field_y -= line_gap
+            c.drawString(2*cm, field_y, f"Student Card N°: {student.student_card_id if student.student_card_id else '.................'}")
+            c.drawString(width/2, field_y, f"Phone: {student.phone if student.phone else '.................'}")
+            field_y -= line_gap
+            c.drawString(2*cm, field_y, f"Speciality: {student_profile.speciality if student_profile and student_profile.speciality else '.................'}")
+            field_y -= line_gap
+            c.drawString(2*cm, field_y, f"Internship Theme: {offer.title if offer else '.................'}")
+            field_y -= line_gap
+            c.drawString(2*cm, field_y, f"Duration: {offer.duration if offer else '.................'}")
+            field_y -= line_gap
+            c.drawString(2*cm, field_y, "Start Date: .........................")
+            c.drawString(width/2, field_y, "End Date: .........................")
 
-            c.setFont("Helvetica-Bold", 14)
-            c.drawString(2*cm, height - 21.6*cm, "Signatures:")
-            c.setFont("Helvetica", 12)
-            c.drawString(2*cm, height - 23*cm, "Student Signature:  ___________________")
-            c.drawString(10*cm, height - 23*cm, "Company Signature :  ___________________")
-
+            # ─── FOOTER ───
+            footer_y = student_box_top - student_box_height - 0.5*cm
+            c.setFont("Helvetica-Oblique", 7.5)
+            c.drawString(1.5*cm, footer_y, "Established in 02 original copies: 01 copy for the company and 01 copy for the student.")
+            c.setFont("Helvetica", 9)
+            company_wilaya = company_profile.wilaya if company_profile and company_profile.wilaya else "................."
+            c.drawRightString(width - 1.5*cm, footer_y - 0.8*cm, f"Made in {company_wilaya} on: {datetime.now().strftime('%d/%m/%Y')}")
+            # ─── SIGNATURES ───
+            sig_y = footer_y - 3*cm
+            c.setFont("Helvetica-Bold", 10)
+            c.drawString(1.5*cm, sig_y, "For the company:")
+            c.drawCentredString(width/2, sig_y, "For the student:")
             c.save()
 
-
-            # save convention url in application
+            # save convention url
             application.convention_url = f'/media/conventions/{filename}'
             application.save()
 
-            #send email with pdf 
+            # send email with PDF attached
             from django.core.mail import EmailMessage
-            email = EmailMessage(
-                subject='Congratulations!!! Your internship application has been accepted ! ',
-                body = f'''
-    Dear {student.full_name},
-    Congratulations!!! Your application for the offer "{offer.title if offer else ''}"
-    has been accepted by {company_profile.company_name if company_profile else 'the company'}.
+            email_msg = EmailMessage(
+                subject='Congratulations! Your internship application has been accepted!',
+                body=f'''
+Dear {student.full_name},
 
-    Please find your convention document attached to this email.
-    Please contact them at: {user.email}
+Congratulations! Your application for the offer "{offer.title if offer else ''}"
+has been accepted by {company_profile.company_name if company_profile else 'the company'}.
 
-    Best regards,
-    Stag.io Platform
+Please find your convention document attached to this email.
+Please contact them at: {user.email}
+
+Best regards,
+Stagio Platform
                 ''',
                 from_email=settings.DEFAULT_FROM_EMAIL,
-                to=[student.email],)
-                
-
-            email.attach_file(filepath)
-            email.send(fail_silently=True)
-            
+                to=[student.email],
+            )
+            email_msg.attach_file(filepath)
+            email_msg.send(fail_silently=True)
 
         else:
-            #university student notify administration 
+            # university student → notify administration
             domain = student.email.split('@')[1]
             university_name = domain.split('.')[0]
             administration = User.objects(
                 role='administration',
                 email__contains=university_name
             ).first()
-
+            
             if administration:
                 Notification(
                     recipient_id=str(administration.id),
                     type='pending_validation',
                     application_id=str(application.id),
-                    message=f'{student.full_name} was accepted by a company , waiting for your validation'
-
+                    message=f'{student.full_name} was accepted by a company, waiting for your validation'
                 ).save()
 
-   
+            # send email to university student
+            send_mail(
+                subject='Congratulations! Your internship application has been accepted!',
+                message=f'''
+Dear {student.full_name},
+
+Congratulations! Your application for the offer "{offer.title if offer else ''}"
+has been accepted by {company_profile.company_name if company_profile else 'the company'}.
+
+The university administration will now review and validate your internship.
+You will be notified once it is validated!
+
+Best regards,
+Stagio Platform
+                ''',
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[student.email],
+                fail_silently=True,
+            )
+
     elif decision == 'refused':
-        student = User.objects(id=application.student_id).first()
-
         if student.student_type == 'independent':
-                    #send real email to independent  students
-                    offer = Offer.objects(id=application.offer_id).first()
-                    from users.models import CompanyProfile
-                    company_profile = CompanyProfile.objects(user_id=str(user.id)).first()
+            # send refusal email to independent student
+            send_mail(
+                subject='Update on your internship application',
+                message=f'''
+Dear {student.full_name},
 
-                    send_mail(
-                        subject='Update on your internship application',
-                        message=f'''
-                        Dear {student.full_name},
-                        We regret to inform you that your application for the offer "{offer.title if offer else '' }"
-                    has been refused by {company_profile.company_name if company_profile else 'the company'}.
+We regret to inform you that your application for the offer "{offer.title if offer else ''}"
+has been refused by the company.
 
-                    Don't give up ! Keep applying  to other offers on Stag.io!
+Don't give up! Keep applying to other offers on Stag.io!
 
-                    Best regards,
-                    Stagio Platform
-                                     ''',
-                                     from_email= settings.DEFAULT_FROM_EMAIL,
-                                     recipient_list=[student.email],
-                                     fail_silently=True,
-
-                    )
+Best regards,
+Stagio Platform
+                ''',
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[student.email],
+                fail_silently=True,
+            )
         else:
-                    #university student notify administration
-                Notification(
-                            recipient_id=str(administration.id),
-                            type='refused',
-                            application_id=str(application.id),
-                            message='Sorry, your application has been refused by the company'
-                        ).save()
-                #also send email to univesity students
-                offer = Offer.objects(id=application.offer_id).first()
-                send_mail(
-                    subject='Update on your internship application',
-                    message= f'''
-                Dear {student.full_name},
-                We regret to inform you that your application for the offer "{offer.tittle if offer else ''}
-                has been refused by the company.
+            # university student → send notification
+            Notification(
+                recipient_id=application.student_id,
+                type='refused',
+                application_id=str(application.id),
+                message='Sorry, your application has been refused by the company'
+            ).save()
+            # also send email to university student
+            send_mail(
+                subject='Update on your internship application',
+                message=f'''
+Dear {student.full_name},
 
-                Don't give up ! Keep applying to other offers on Stag.io!
+We regret to inform you that your application for the offer "{offer.title if offer else ''}"
+has been refused by the company.
 
-                Best regards,
-                Stagio Platform
-                           ''',
-                           from_email=settings.DEFAULT_FROM_EMAIL,
-                           recipient_list=[student.emil],
-                           fail_silently=True
-                )
-                 
+Don't give up! Keep applying to other offers on Stag.io!
+
+Best regards,
+Stagio Platform
+                ''',
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[student.email],
+                fail_silently=True,
+            )
 
     return Response({'message': f'Application {decision} successfully'})
 
@@ -309,165 +346,225 @@ def validate_application(request, application_id):
         return Response({'error': 'Unauthorized'}, status=status.HTTP_401_UNAUTHORIZED)
 
     if user.role != 'administration':
-        return Response({'error': 'Only administration can validate applications'}, status=status.HTTP_403_FORBIDDEN)   
-    
+        return Response({'error': 'Only administration can validate applications'}, status=status.HTTP_403_FORBIDDEN)
+
     application = Application.objects(id=application_id, status='accepted').first()
     if not application:
-        return Response({'error': 'Application not found or not accepted yet'}, status=status.HTTP_404_NOT_FOUND) 
+        return Response({'error': 'Application not found or not accepted yet'}, status=status.HTTP_404_NOT_FOUND)
 
     decision = request.data.get('decision')
-    if decision not in ['validated','refused']:
-        return Response({'error':'Decision must be validated or refused'}, status=status.HTTP_400_BAD_REQUEST)
-    
+    if decision not in ['validated', 'refused']:
+        return Response({'error': 'Decision must be validated or refused'}, status=status.HTTP_400_BAD_REQUEST)
+
     if decision == 'validated':
+        # get all needed data
+        student = User.objects(id=application.student_id).first()
+        offer = Offer.objects(id=application.offer_id).first()
+        from users.models import StudentProfile, CompanyProfile, AdministrationProfile
+        student_profile = StudentProfile.objects(user_id=str(student.id)).first()
+        company_profile = CompanyProfile.objects(user_id=str(application.company_id)).first()
 
-    #get student and company data for the pdf 
-     student = User.objects(id=application.student_id).first()
-     company_user = User.objects(id=application.company_id).first()
-     offer = Offer.objects(id=application.offer_id).first()
-     from users.models import StudentProfile , CompanyProfile
-     student_profile = StudentProfile.objects(user_id=str(student.id)).first()
-     company_profile = CompanyProfile.objects(user_id=str(application.company_id)).first()
+        # get administration and its profile
+        domain = student.email.split('@')[1]
+        university_name = domain.split('.')[0]
+        administration = User.objects(role='administration', email__contains=university_name).first()
+        administration_profile = AdministrationProfile.objects(user_id=str(administration.id)).first() if administration else None
 
+        # generate PDF convention
+        conventions_dir = os.path.join(settings.BASE_DIR, 'media', 'conventions')
+        os.makedirs(conventions_dir, exist_ok=True)
 
-    #create media/conventions folder if it doesn t exist
-     conventions_dir = os.path.join(settings.BASE_DIR,'media','conventions')
-     os.makedirs(conventions_dir,exist_ok=True)
+        filename = f"convention_{str(application.id)}.pdf"
+        filepath = os.path.join(conventions_dir, filename)
 
+        from reportlab.lib.pagesizes import A4
+        from reportlab.pdfgen import canvas
+        from reportlab.lib import colors
+        from reportlab.lib.units import cm
+        from datetime import datetime
 
-    #generate PDF filename
-     filename = f"convention_{str(application.id)}.pdf"
-     filepath = os.path.join(conventions_dir, filename)
+        c = canvas.Canvas(filepath, pagesize=A4)
+        width, height = A4
 
-    #create PDF 
-     c = canvas.Canvas(filepath,pagesize=A4)
-     width, height = A4
+        # ─── TITLE ───
+        c.setFont("Helvetica-Bold", 22)
+        c.drawCentredString(width/2, height - 1.8*cm, "INTERNSHIP CONVENTION")
+        c.setFont("Helvetica-Bold", 16)
+        c.drawCentredString(width/2, height - 2.8*cm, "BETWEEN")
+        c.setLineWidth(1)
+        c.line(1.5*cm, height - 3.2*cm, width - 1.5*cm, height - 3.2*cm)
 
-    #title
-     c.setFont("Helvetica-Bold", 20)
-     c.drawCentredString (width/2 , height - 3*cm , "Internship Convention")
+        # ─── TWO BOXES ───
+        box_top = height - 3.5*cm
+        box_height = 4.8*cm
+        left_box_x = 1.5*cm
+        left_box_w = (width - 3*cm) / 2 - 1*cm
+        right_box_x = width/2 + 1*cm
+        right_box_w = (width - 3*cm) / 2 - 1*cm
 
-    #subtitle
-     c.setFont("Helvetica", 12)
-     c.drawCentredString (width/2 , height - 4*cm , "Stag.io - Internship Management Platform")
+        # LEFT BOX — University
+        c.setLineWidth(0.8)
+        c.rect(left_box_x, box_top - box_height, left_box_w, box_height)
 
-    # line seperator
-     c.setStrokeColor(colors.black)
-     c.line(2*cm, height - 4.5*cm, width - 2*cm, height - 4.5*cm)
-    
-    #student information
-     c.setFont("Helvetica-Bold", 14)
-     c.drawString(2*cm, height - 6*cm, "Student Information:")
-     c.setFont("Helvetica", 12)
-     c.drawString(2*cm, height - 7*cm, f"Full Name: {student.full_name}")
-     c.drawString(2*cm, height - 7.8*cm, f"Email: {student.email}")
-     if student_profile:
-        c.drawString(2*cm, height - 8.6*cm, f"University: {student_profile.university}")
-        c.drawString(2*cm, height - 9.4*cm, f"Field of Study: {student_profile.major}")
-        c.drawString(2*cm, height - 10.2*cm, f"Wilaya: {student_profile.wilaya}")
+        uni_name = student_profile.university.upper() if student_profile and student_profile.university else "UNIVERSITY"
+        c.setFont("Helvetica-Bold", 8)
+        text_x = left_box_x + left_box_w/2
+        c.drawCentredString(text_x, box_top - 0.5*cm, uni_name)
 
-    #line seperator
-     c.line(2*cm, height - 11*cm, width - 2*cm, height - 11*cm)
+        director_name = administration_profile.director_full_name if administration_profile and administration_profile.director_full_name else "................."
+        c.setFont("Helvetica", 7.5)
+        c.drawCentredString(text_x, box_top - 1*cm, director_name)
 
-    #company information
-     c.setFont("Helvetica-Bold", 14)
-     c.drawString(2*cm, height - 12*cm, "Company Information:")
-     c.setFont("Helvetica", 12)
-     if company_profile:
-        c.drawString(2*cm, height - 13*cm, f"Company Name: {company_profile.company_name}")
-        c.drawString(2*cm, height - 13.8*cm, f"Wilaya: {company_profile.wilaya}")
-        c.drawString(2*cm, height - 14.6*cm, f"Industry: {company_profile.industry}")
+        uni_location = administration_profile.location if administration_profile and administration_profile.location else "................."
+        c.drawString(left_box_x + 0.3*cm, box_top - 1.6*cm, f"Address: {uni_location}")
+        c.drawString(left_box_x + 0.3*cm, box_top - 2.1*cm, "Represented by:")
+        c.drawString(left_box_x + 0.3*cm, box_top - 2.6*cm, "Mr. The Vice-Rector in charge")
+        c.drawString(left_box_x + 0.3*cm, box_top - 3*cm, "of external relations,")
+        c.drawString(left_box_x + 0.3*cm, box_top - 3.4*cm, "hereinafter the University")
+        uni_phone = administration.phone if administration and administration.phone else "................."
+        c.drawString(left_box_x + 0.3*cm, box_top - 4*cm, f"Tel/Fax: {uni_phone}")
 
-    #line seperator
-     c.line(2*cm, height - 15.4*cm, width - 2*cm, height - 15.4*cm) 
+        # AND — between boxes
+        c.setFont("Helvetica-Bold", 16)
+        c.drawCentredString(width/2, box_top - box_height/2, "AND")
 
-    #internship information
-     c.setFont("Helvetica-Bold", 14)
-     c.drawString(2*cm, height - 16.4*cm, "Internship Information:") 
-     c.setFont("Helvetica", 12)
-     if offer:
-        c.drawString(2*cm, height - 17.4*cm, f"Offer Title: {offer.title}")
-        c.drawString(2*cm, height - 18.2*cm, f"Duration: {offer.duration}")
-        c.drawString(2*cm, height - 19*cm, f"Type: {offer.type}")
-        c.drawString(2*cm, height - 19.6*cm, f"Wilaya: {offer.wilaya}")      
-    
+        # RIGHT BOX — Company
+        c.setLineWidth(0.8)
+        c.rect(right_box_x, box_top - box_height, right_box_w, box_height)
 
-    #line seperator
-     c.line(2*cm, height - 20.6*cm, width - 2*cm, height - 20.6*cm)
+        c.setFont("Helvetica-Bold", 8)
+        c.drawString(right_box_x + 0.3*cm, box_top - 0.5*cm, "Company (name and address)")
+        c.setFont("Helvetica", 7.5)
 
-    #validation info 
-     c.setFont("Helvetica-Bold", 14)
-     c.drawString(2*cm, height - 21.6*cm, "Validation:")
-     c.setFont("Helvetica", 12)
-     c.drawString(2*cm, height - 22.6*cm, f"Validated by: {user.full_name}")
-     c.drawString(2*cm, height - 23.4*cm, f"Validation Date: {datetime.now().strftime('%d/%m/%Y')}")
+        company_name_text = company_profile.company_name if company_profile and company_profile.company_name else "................."
+        company_address_text = company_profile.address if company_profile and company_profile.address else "................."
+        c.drawString(right_box_x + 0.3*cm, box_top - 1*cm, company_name_text)
+        c.drawString(right_box_x + 0.3*cm, box_top - 1.5*cm, company_address_text)
+        c.drawString(right_box_x + 0.3*cm, box_top - 2.1*cm, "Represented by:")
+        director_company = company_profile.director_full_name if company_profile and company_profile.director_full_name else "................."
+        c.drawString(right_box_x + 0.3*cm, box_top - 2.6*cm, f"Mr/Ms: {director_company}")
+        c.drawString(right_box_x + 0.3*cm, box_top - 3.1*cm, ".................")
+        company_phone_text = company_profile.phone if company_profile and company_profile.phone else "....."
+        c.drawString(right_box_x + 0.3*cm, box_top - 3.7*cm, f"Tel: {company_phone_text}    Fax: ............")
 
+        # ─── STUDENT INFORMATION BOX ───
+        student_box_top = box_top - box_height - 0.6*cm
+        student_box_height = 6.2*cm
 
-    #signature lines
-     c.drawString(2*cm, height - 25*cm, "Student Signature: ___________________")
-     c.drawString(10*cm, height - 25*cm, "Company Signature: ___________________")
-     c.drawString(2*cm, height - 26.5*cm, "Administration Signature: ___________________")
-     c.save()
+        c.setLineWidth(1.2)
+        c.rect(1.5*cm, student_box_top - student_box_height, width - 3*cm, student_box_height)
 
+        c.setFont("Helvetica-Bold", 11)
+        title_y = student_box_top - 0.7*cm
+        c.drawCentredString(width/2, title_y, "STUDENT INFORMATION")
+        title_width = c.stringWidth("STUDENT INFORMATION", "Helvetica-Bold", 11)
+        c.setLineWidth(0.8)
+        c.line(width/2 - title_width/2, title_y - 0.15*cm, width/2 + title_width/2, title_y - 0.15*cm)
 
-    #save the convention path to the application
-     application.status = 'validated'
-     application.administration_validated_at = datetime.now()
-     application.convention_url = f'/media/conventions/{filename}'
-     application.save()
+        c.setFont("Helvetica", 9.5)
+        field_y = student_box_top - 1.4*cm
+        line_gap = 0.6*cm
 
+        c.drawString(2*cm, field_y, f"Full Name and Surname:  {student.full_name}")
+        field_y -= line_gap
+        c.drawString(2*cm, field_y, f"Faculty / University:  {student_profile.university if student_profile and student_profile.university else '.................'}")
+        field_y -= line_gap
+        c.drawString(2*cm, field_y, f"Student Card N°:  {student.student_card_id if student.student_card_id else '.................'}")
+        c.drawString(width/2, field_y, f"Phone:  {student.phone if student.phone else '.................'}")
+        field_y -= line_gap
+        c.drawString(2*cm, field_y, f"Degree Prepared:  {student_profile.major if student_profile and student_profile.major else '.................'}")
+        field_y -= line_gap
+        c.drawString(2*cm, field_y, f"Internship Theme:  {offer.title if offer else '.................'}")
+        field_y -= line_gap
+        c.drawString(2*cm, field_y, f"Duration:  {offer.duration if offer else '.................'}")
+        field_y -= line_gap
+        c.drawString(2*cm, field_y, "Start Date:  .........................")
+        c.drawString(width/2, field_y, "End Date:  .........................")
 
+        # ─── FOOTER NOTE ───
+        footer_y = student_box_top - student_box_height - 0.5*cm
+        c.setFont("Helvetica-Oblique", 8)
+        c.drawString(1.5*cm, footer_y, "Established in 02 original copies: 01 copy for the university and 01 copy for the company.")
 
-    #notify the student
-     Notification(
-         recipient_id = application.student_id,
-        type = 'validated',
-        application_id = str(application.id),
-        message = ' Congratulations!!! Your internship application has been validated by the university administration. We wish you a successful internship experience!'
-     ).save()
+        # ─── MADE IN ───
+        wilaya_text = administration_profile.wilaya if administration_profile and administration_profile.wilaya else "................."
+        c.setFont("Helvetica", 9)
+        c.drawRightString(width - 1.5*cm, footer_y - 0.8*cm, f"Made in {wilaya_text} on: {datetime.now().strftime('%d/%m/%Y')}")
 
-     #send emal with pdf attached to univesity students 
-     from django.core.mail import EmailMessage
-     email = EmailMessage(
-         subject = 'Congratulations ! Your internship has been validated!',
-         body=f'''
-         Dear{student.full_name},
-         Congratulations! Your internship application has been validated by your university administration.
+        # ─── VISA ───
+        c.setFont("Helvetica-Bold", 9)
+        c.drawString(1.5*cm, footer_y - 1.8*cm, "Visa of the department head:")
+        c.setLineWidth(0.5)
+        c.line(1.5*cm, footer_y - 3*cm, 8*cm, footer_y - 3*cm)
 
-         Please find your convention document attached to this email.
+        # ─── SIGNATURES ───
+        sig_y = footer_y - 4.5*cm
+        c.setFont("Helvetica-Bold", 10)
+        c.drawString(1.5*cm, sig_y, "For the company:")
+        c.drawCentredString(width/2, sig_y, "For the student:")
+        c.drawRightString(width - 1.5*cm, sig_y, "For the university:")
 
-         Best regards,
-         Stagio Platform
-             ''',
+        c.save()
 
-             from_email=settings.DEFAULT_FROM_EMAIL,
-             to=[student.email],  
-     )
+        # save convention url
+        application.status = 'validated'
+        application.administration_validated_at = datetime.now()
+        application.convention_url = f'/media/conventions/{filename}'
+        application.save()
 
-     email.attach_file(filepath)
-     email.send(fail_silently=True)
+        # mark student as placed
+        from users.models import StudentProfile
+        student_profile_update = StudentProfile.objects(user_id=str(student.id)).first()
+        if student_profile_update:
+            student_profile_update.placed = True
+            student_profile_update.save()
 
-     return Response({
-                    'message': 'Application validated successfully',
-                     'convention_url': f'/media/conventions/{filename}'
-                     })
-    
+        # notify student validated
+        Notification(
+            recipient_id=application.student_id,
+            type='validated',
+            application_id=str(application.id),
+            message='Congratulations! Your internship has been validated by the university administration!'
+        ).save()
+
+        # send email with PDF attached to university student
+        from django.core.mail import EmailMessage
+        email_msg = EmailMessage(
+            subject='Congratulations! Your internship has been validated!',
+            body=f'''
+Dear {student.full_name},
+
+Congratulations! Your internship application has been validated by your university administration.
+
+Please find your convention document attached to this email.
+
+Best regards,
+Stagio Platform
+            ''',
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[student.email],
+        )
+        email_msg.attach_file(filepath)
+        email_msg.send(fail_silently=True)
+
+        return Response({
+            'message': 'Application validated successfully',
+            'convention_url': f'/media/conventions/{filename}'
+        })
+
     elif decision == 'refused':
         application.status = 'refused'
         application.administration_validated_at = datetime.now()
         application.save()
 
-        #Notify student refused by the administration
         Notification(
-            recipient_id = application.student_id,
+            recipient_id=application.student_id,
             type='refused',
             application_id=str(application.id),
             message='Sorry, your internship application has been refused by the university administration'
         ).save()
 
-        return Response({'message':'Application refused by the administration'})
-
-
+        return Response({'message': 'Application refused by administration'})
 #when administration opens their dashboard
 @api_view(['GET'])
 def get_pending_validations(request):
