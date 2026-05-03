@@ -9,8 +9,12 @@ https://docs.djangoproject.com/en/6.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
-
+from corsheaders.defaults import default_headers
 CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    'ngrok-skip-browser-warning',
+]
+
 CSRF_TRUSTED_ORIGINS = ['http://localhost:3000']
 from pathlib import Path
 
@@ -57,6 +61,7 @@ INSTALLED_APPS = [
     'notifications',
     'follows',
     'chats',
+    'django_extensions',
 
 ]
 
@@ -88,7 +93,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'stagio_backend.wsgi.application'
-
+CORS_ALLOW_ALL_ORIGINS = True
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
