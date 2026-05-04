@@ -1,0 +1,154 @@
+/* Navbar.css */
+
+nav.container {
+  width: 100%;
+  padding: 24px 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 1000;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  padding-left: 5%;
+  padding-right: 5%;
+}
+
+.logo {
+  width: 120px;
+  height: auto;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+  display: block;
+}
+
+.logo:hover {
+  transform: scale(1.05);
+}
+
+nav ul {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+
+nav ul li {
+  list-style: none;
+}
+
+nav ul li a {
+  font-size: 15px;
+  font-weight: 500;
+  color: #fff;
+  cursor: pointer;
+  transition: color 0.3s ease;
+  opacity: 0.85;
+}
+
+nav ul li a:hover {
+  opacity: 1;
+  color: #fff;
+}
+
+/* ── Dark/Sticky Nav (Premium UI) ── */
+.dark-nav {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  padding: 10px 4% !important; /* Smaller horizontal padding for floating look */
+  margin-top: 15px;
+  width: 92% !important;
+  left: 4% !important;
+  border-radius: 100px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.dark-nav .logo {
+  filter: brightness(0.1);
+  width: 100px; /* Slightly smaller logo in sticky */
+}
+
+.dark-nav ul li a {
+  color: #111;
+  opacity: 0.65;
+  font-weight: 600;
+}
+
+.dark-nav ul li a:hover {
+  color: #212EA0;
+  opacity: 1;
+}
+
+/* ── Action Buttons ── */
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.btn {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff !important;
+  padding: 8px 24px;
+  border-radius: 50px;
+  font-size: 14px;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  white-space: nowrap;
+}
+
+.btn:hover {
+  background: #fff;
+  color: #212EA0 !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+}
+
+.dark-nav .btn {
+  background: #212EA0;
+  color: #fff !important;
+  border-color: #212EA0;
+}
+
+.dark-nav .btn:hover {
+  background: #1a2590;
+  box-shadow: 0 8px 15px rgba(33, 46, 160, 0.2);
+}
+
+.login-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.3s;
+  height: 40px;
+  padding: 0 4px;
+}
+
+.dark-nav .login-btn {
+  color: #111;
+}
+
+.dark-nav .login-btn:hover {
+  color: #212EA0;
+}
+
+.login-icon {
+  width: 20px;
+  height: 20px;
+}
+
+@media (max-width: 900px) {
+  nav ul {
+    display: none; /* Add a mobile menu later if needed */
+  }
+}

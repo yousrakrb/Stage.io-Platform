@@ -1,0 +1,158 @@
+/* UnivPages.css */
+
+.univ-pages-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 1000px;
+}
+
+.univ-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 1.5rem;
+  border: 1px solid #ebebeb;
+  transition: all 0.2s;
+}
+
+.univ-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+/* ── Validations ── */
+.univ-card-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.univ-val-info h3 { font-size: 16px; font-weight: 700; color: #0a0a0a; margin-bottom: 4px; }
+.univ-val-co { font-size: 14px; font-weight: 600; color: #212EA0; margin-bottom: 4px; }
+.univ-val-meta { font-size: 13px; color: #666; margin-bottom: 4px; }
+.univ-val-date { font-size: 12px; color: #aaa; font-style: italic; }
+
+.univ-val-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 10px;
+}
+
+/* ── Conventions Table ── */
+.univ-table-header {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  padding: 0 1.5rem 0.5rem;
+  font-size: 12px;
+  font-weight: 600;
+  color: #888;
+  text-transform: uppercase;
+}
+
+.univ-table-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  align-items: center;
+}
+
+.univ-doc-info { display: flex; gap: 12px; align-items: center; }
+.doc-icon-small {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #f0f2ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.univ-doc-name { font-size: 14px; font-weight: 600; color: #0a0a0a; }
+.univ-doc-date { font-size: 12px; color: #aaa; }
+.univ-doc-student { font-size: 14px; color: #444; font-weight: 500; }
+
+.univ-status-tag {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 100px;
+  width: fit-content;
+}
+
+.s-signed { background: #E1F5EE; color: #085041; }
+.s-awaiting { background: #FAEEDA; color: #633806; }
+.s-review { background: #EEEDFE; color: #3C3489; }
+
+.univ-dl-btn {
+  background: #f6f8fa;
+  border: 1px solid #d0d7de;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.univ-dl-btn:hover { background: #212EA0; color: #fff; border-color: #212EA0; }
+
+/* ── Internships Grid ── */
+.univ-grid-pages {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.univ-intern-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.uic-head { margin-bottom: 4px; }
+.uic-student { font-size: 16px; font-weight: 700; color: #0a0a0a; }
+.uic-company { font-size: 13px; font-weight: 600; color: #212EA0; }
+.uic-role { font-size: 14px; color: #444; font-weight: 500; }
+
+.uic-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #888;
+}
+
+.uic-progress-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+  color: #555;
+  margin-top: 4px;
+}
+
+.uic-progress-bar {
+  height: 6px;
+  background: #f0f0f0;
+  border-radius: 100px;
+  overflow: hidden;
+}
+
+.uic-progress-fill {
+  height: 100%;
+  background: #212EA0;
+  border-radius: 100px;
+}
+
+.uic-btn {
+  margin-top: 8px;
+  background: #fff;
+  border: 1px solid #212EA0;
+  color: #212EA0;
+  padding: 8px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.uic-btn:hover { background: #212EA0; color: #fff; }

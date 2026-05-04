@@ -1,0 +1,153 @@
+.ao-page {
+  min-height: 100vh;
+  background-color: #f7f9fa;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  padding-bottom: 60px;
+}
+
+.ao-nav {
+  background: #212EA0;
+  color: #fff;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+}
+
+.ao-nav-brand {
+  font-size: 18px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.ao-back-btn {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+.ao-back-btn:hover { background: rgba(255, 255, 255, 0.2); }
+
+.ao-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+.ao-header { margin-bottom: 30px; }
+.ao-header h1 { font-size: 26px; color: #0a0a0a; margin: 0 0 8px 0; }
+.ao-header p { font-size: 15px; color: #64748b; margin: 0; }
+
+.ao-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.ao-form-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+}
+
+.ao-form-card h3 {
+  font-size: 18px;
+  color: #0f172a;
+  margin: 0 0 24px 0;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.ao-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.ao-form-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 20px;
+}
+
+.ao-form-group:last-child { margin-bottom: 0; }
+
+.ao-form-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 8px;
+}
+
+.ao-form-group input,
+.ao-form-group select,
+.ao-form-group textarea {
+  padding: 12px 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #0f172a;
+  background: #f8fafc;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.ao-form-group input:focus,
+.ao-form-group select:focus,
+.ao-form-group textarea:focus {
+  border-color: #212EA0;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(33, 46, 160, 0.1);
+}
+
+.ao-form-group textarea {
+  resize: vertical;
+}
+
+.ao-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  margin-top: 10px;
+}
+
+.ao-btn-cancel {
+  background: none;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  height: 44px;
+  padding: 0 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.ao-btn-cancel:hover { background: #f8fafc; color: #0f172a; }
+
+.ao-btn-submit {
+  background: #212EA0;
+  border: none;
+  color: #fff;
+  height: 44px;
+  padding: 0 32px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+}
+
+.ao-btn-submit:hover { opacity: 0.9; }
+.ao-btn-submit:active { transform: translateY(1px); }

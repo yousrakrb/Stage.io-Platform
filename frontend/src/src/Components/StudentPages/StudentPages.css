@@ -1,0 +1,143 @@
+/* StudentPages.css */
+
+.apps-container, .matches-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 900px;
+}
+
+.matches-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+}
+
+/* ── Application Detail Card ── */
+.app-detail-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 1.5rem;
+  border: 1px solid #ebebeb;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.app-detail-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.app-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.app-co-info {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.app-title-text { font-size: 17px; font-weight: 700; color: #0a0a0a; margin-bottom: 2px; }
+.app-company-text { font-size: 13px; color: #888; }
+
+.app-description {
+  font-size: 14px;
+  color: #555;
+  line-height: 1.6;
+  margin-bottom: 1.25rem;
+}
+
+.app-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid #f0f0f0;
+  padding-top: 1rem;
+}
+
+.app-date { font-size: 12px; color: #aaa; }
+.app-action-btn {
+  background: #f6f8fa;
+  border: 1px solid #d0d7de;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.app-action-btn:hover { background: #f3f4f6; border-color: #212EA0; color: #212EA0; }
+
+/* ── Match Detail Card ── */
+.match-detail-card {
+  background: #fff;
+  border-radius: 20px;
+  padding: 2rem;
+  border: 1px solid #ebebeb;
+  position: relative;
+  overflow: hidden;
+}
+
+.match-score-badge {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  background: #E1F5EE;
+  color: #0F6E56;
+  padding: 6px 14px;
+  border-radius: 100px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.match-card-title { font-size: 18px; font-weight: 800; color: #000; margin-bottom: 6px; }
+.match-card-company { font-size: 14px; color: #666; margin-bottom: 1rem; }
+
+.match-card-tags {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 1.25rem;
+}
+
+.match-card-desc {
+  font-size: 14px;
+  color: #444;
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+}
+
+.match-card-footer {
+  display: flex;
+  gap: 12px;
+}
+
+.match-apply-btn {
+  background: #212EA0;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  flex: 1;
+  transition: background 0.2s;
+}
+
+.match-apply-btn:hover { background: #1a2590; }
+
+.match-save-btn {
+  background: #fff;
+  border: 1px solid #d0d7de;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.match-save-btn:hover { background: #f6f8fa; border-color: #212EA0; color: #212EA0; }
