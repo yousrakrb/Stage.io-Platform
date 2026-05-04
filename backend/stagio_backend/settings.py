@@ -93,7 +93,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'stagio_backend.wsgi.application'
-CORS_ALLOW_ALL_ORIGINS = True
+
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
@@ -155,7 +155,7 @@ SIMPLE_JWT = {
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
 }
 REST_FRAMEWORK = {
-    'DEAFUALT_AUTHENTICATION_CLASSES': [],
+    'DEFAULT_AUTHENTICATION_CLASSES': [],
     'DEFAULT_PERMISSION_CLASSES' : [
         'rest_framework.permissions.AllowAny',
     ],
