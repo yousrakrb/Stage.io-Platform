@@ -27,7 +27,7 @@ class StudentProfile(Document):
         placed = BooleanField(default=False)
         cv_url = StringField(default="")
         university = StringField(default="")
-        major = StringField(default="" , choices=['IT', 'Health', 'Law', 'Commerce','Art', 'Other', ''])
+        major = StringField(default="")
         speciality = StringField(default="")
         graduation_year = StringField(default="")
         github_link = StringField(default="")
@@ -52,17 +52,26 @@ class CompanyProfile(Document):
         director_full_name = StringField(default="")
         director_email = StringField(default="")
         director_phone = StringField(default="")
+        
+        # New fields for rich profiles
+        tagline = StringField(default="")
+        founded = StringField(default="")
+        size = StringField(default="")
+        tech_stack = ListField(default=[])
+        culture = ListField(default=[]) # List of dicts
 
         meta = {'collection': 'company_profiles'}    
 
 class AdministrationProfile(Document):
         user_id = StringField(required=True)
         university = StringField(default="")
+        bio = StringField(default="")
+        rector_name = StringField(default="")
+        logo_url = StringField(default="")
         wilaya = StringField(default="")
         location = StringField(default="")
-        logo_url = StringField(default="")
         director_full_name = StringField(default="")
         director_email = StringField(default="")
         director_phone = StringField(default="")
 
-        meta = {'collection': 'administration_profiles'}    
+        meta = {'collection': 'administration_profiles'}

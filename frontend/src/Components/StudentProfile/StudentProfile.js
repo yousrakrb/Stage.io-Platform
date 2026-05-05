@@ -1,17 +1,57 @@
-import React, { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
+import { useParams, Link, useNavigate } from 'react-router-dom'
+import { getStudentProfile, getPublicStudentProfile } from '../../api'
+import StudentSidebar from '../UnifiedLayouts/StudentSidebar'
+import CompanySidebar from '../UnifiedLayouts/CompanySidebar'
+import '../StudentDash/StudentDash.css'
 import './StudentProfile.css'
 
 const StudentProfile = () => {
+  const { id } = useParams()
   const [activeTab, setActiveTab] = useState('about')
   const navigate = useNavigate()
+  const [profile, setProfile] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const userRole = localStorage.getItem('role')
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        let data;
+        if (id) {
+          data = await getPublicStudentProfile(id);
+        } else {
+          data = await getStudentProfile();
+        }
+        setProfile(data)
+      } catch (err) {
+        console.error('Error fetching student profile:', err)
+        setError('Failed to load profile data.')
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchProfile()
+  }, [id])
+
+  if (loading) return <div style={{ padding: '50px', textAlign: 'center' }}>Loading profile...</div>
+  if (error) return <div style={{ padding: '50px', textAlign: 'center', color: 'red' }}>{error}</div>
+  if (!profile) return null
+
+  // Helper for initials
+  const nameParts = profile.full_name ? profile.full_name.split(' ') : ['Student']
+  const initials = nameParts.length > 1 
+    ? (nameParts[0][0] + nameParts[1][0]).toUpperCase()
+    : nameParts[0][0]?.toUpperCase() || 'S'
 
   return (
-    <div className="sp-page">
-
-
-      {/* ── Body ── */}
-      <div className="sp-body">
+    <div className="db">
+      {userRole === 'company' ? <CompanySidebar activeId="candidates" /> : <StudentSidebar />}
+      <main className="main">
+        <div className="sp-page">
+          {/* ── Body ── */}
+          <div className="sp-body">
 
         {/* ── Left Panel ── */}
         <div className="sp-left">
@@ -22,21 +62,25 @@ const StudentProfile = () => {
               <div className="sp-cover-pattern" />
             </div>
             <div className="sp-avatar-wrap">
-              <div className="sp-avatar">AK</div>
+              {profile.avatar_url ? (
+                <img src={`http://127.0.0.1:8000${profile.avatar_url}`} alt="Avatar" style={{width:'100%', height:'100%', borderRadius:'50%', objectFit:'cover'}} />
+              ) : (
+                <div className="sp-avatar">{initials}</div>
+              )}
             </div>
-            <div className="sp-name">Amine Khelifi</div>
-            <div className="sp-role">Frontend Developer</div>
+            <div className="sp-name">{profile.full_name}</div>
+            <div className="sp-role">{profile.speciality || profile.major || 'Student'}</div>
             <div className="sp-location">
               <svg width="11" height="11" viewBox="0 0 16 16" fill="none">
                 <path d="M8 1a5 5 0 015 5c0 3.5-5 9-5 9S3 9.5 3 6a5 5 0 015-5z" stroke="#6b7280" strokeWidth="1.4" />
                 <circle cx="8" cy="6" r="1.5" stroke="#6b7280" strokeWidth="1.4" />
               </svg>
-              Alger, Algeria
+              {profile.wilaya || 'Location not set'}
             </div>
             <div className="sp-stats-row">
-              <div className="sp-stat"><div className="sp-stat-num">12</div><div className="sp-stat-label">Applied</div></div>
-              <div className="sp-stat"><div className="sp-stat-num">3</div><div className="sp-stat-label">Accepted</div></div>
-              <div className="sp-stat"><div className="sp-stat-num">94%</div><div className="sp-stat-label">Match</div></div>
+              <div className="sp-stat"><div className="sp-stat-num">0</div><div className="sp-stat-label">Applied</div></div>
+              <div className="sp-stat"><div className="sp-stat-num">0</div><div className="sp-stat-label">Accepted</div></div>
+              <div className="sp-stat"><div className="sp-stat-num">0%</div><div className="sp-stat-label">Match</div></div>
             </div>
           </div>
 
@@ -45,9 +89,10 @@ const StudentProfile = () => {
             <div className="sp-card-inner">
               <div className="sp-card-title">Skills</div>
               <div className="sp-skill-list">
-                {['React', 'TypeScript', 'Node.js', 'Git', 'Figma', 'CSS', 'Python', 'REST APIs'].map((s, i) => (
-                  <span key={s} className={`sp-skill-pill ${i > 4 ? 'gray' : ''}`}>{s}</span>
-                ))}
+                {profile.skills && profile.skills.length > 0 ? profile.skills.map((s, i) => {
+                  const skillName = typeof s === 'string' ? s : s.name
+                  return <span key={i} className={`sp-skill-pill ${i > 4 ? 'gray' : ''}`}>{skillName}</span>
+                }) : <span className="sp-skill-pill gray">No skills added</span>}
               </div>
             </div>
           </div>
@@ -56,16 +101,16 @@ const StudentProfile = () => {
           <div className="sp-card">
             <div className="sp-card-inner">
               <div className="sp-card-title">Languages</div>
-              {[
-                { lang: 'Arabic', level: 'Native' },
-                { lang: 'French', level: 'Fluent' },
-                { lang: 'English', level: 'Professional' },
-              ].map(l => (
-                <div className="sp-lang-row" key={l.lang}>
-                  <span style={{ fontSize: '13px', fontWeight: '500' }}>{l.lang}</span>
-                  <span className="sp-lang-level">{l.level}</span>
-                </div>
-              ))}
+              {profile.languages && profile.languages.length > 0 ? profile.languages.map((l, i) => {
+                const langName = typeof l === 'string' ? l : l.name
+                const langLevel = typeof l === 'string' ? '' : `${l.percentage}%`
+                return (
+                  <div className="sp-lang-row" key={i}>
+                    <span style={{ fontSize: '13px', fontWeight: '500' }}>{langName}</span>
+                    <span className="sp-lang-level">{langLevel}</span>
+                  </div>
+                )
+              }) : <div style={{ fontSize: '13px', color: '#6b7280' }}>No languages added</div>}
             </div>
           </div>
 
@@ -77,9 +122,9 @@ const StudentProfile = () => {
           {/* Top bar */}
           <div className="sp-top-bar">
             <div className="sp-top-info">
-              <div className="sp-top-name">Amine Khelifi</div>
+              <div className="sp-top-name">{profile.full_name}</div>
               <div className="sp-top-sub">
-                Univ. Alger 1 · L3 Computer Science
+                {profile.university || 'University not set'} · {profile.major || 'Major not set'}
                 <span className="sp-badge available">Available</span>
               </div>
             </div>
@@ -113,115 +158,117 @@ const StudentProfile = () => {
 
               {activeTab === 'about' && (
                 <>
+                  {profile.bio && (
+                    <>
+                      <div className="sp-card-title" style={{ marginBottom: '1rem' }}>About Me</div>
+                      <p style={{ fontSize: '14px', lineHeight: '1.6', color: '#374151', marginBottom: '2rem' }}>{profile.bio}</p>
+                    </>
+                  )}
+                  
                   <div className="sp-card-title" style={{ marginBottom: '1rem' }}>Contact Information</div>
                   <div className="sp-contact-grid">
-                    <div className="sp-contact-item"><span className="sp-contact-label">Phone</span><span className="sp-contact-val link">+213 555 123 456</span></div>
-                    <div className="sp-contact-item"><span className="sp-contact-label">Email</span><span className="sp-contact-val link">amine.khelifi@univ-alger.dz</span></div>
-                    <div className="sp-contact-item"><span className="sp-contact-label">LinkedIn</span><span className="sp-contact-val link">linkedin.com/in/aminekhelifi</span></div>
-                    <div className="sp-contact-item"><span className="sp-contact-label">GitHub</span><span className="sp-contact-val link">github.com/aminekhelifi</span></div>
+                    <div className="sp-contact-item"><span className="sp-contact-label">Phone</span><span className="sp-contact-val link">{profile.phone || '-'}</span></div>
+                    <div className="sp-contact-item"><span className="sp-contact-label">Email</span><span className="sp-contact-val link">{profile.email}</span></div>
+                    <div className="sp-contact-item"><span className="sp-contact-label">LinkedIn</span><span className="sp-contact-val link">-</span></div>
+                    <div className="sp-contact-item"><span className="sp-contact-label">GitHub</span><span className="sp-contact-val link">{profile.github_link || '-'}</span></div>
+                    <div className="sp-contact-item"><span className="sp-contact-label">Portfolio</span><span className="sp-contact-val link">{profile.portfolio_link || '-'}</span></div>
                   </div>
-                  <div className="sp-card-title" style={{ margin: '1.5rem 0 1rem' }}>Basic Information</div>
+                  
+                  <div className="sp-card-title" style={{ margin: '1.5rem 0 1rem' }}>Academic Information</div>
                   <div className="sp-contact-grid">
-                    <div className="sp-contact-item"><span className="sp-contact-label">Date of Birth</span><span className="sp-contact-val">March 14, 2002</span></div>
-                    <div className="sp-contact-item"><span className="sp-contact-label">Gender</span><span className="sp-contact-val">Male</span></div>
-                    <div className="sp-contact-item"><span className="sp-contact-label">Nationality</span><span className="sp-contact-val">Algerian</span></div>
-                    <div className="sp-contact-item"><span className="sp-contact-label">Availability</span><span className="sp-contact-val">July 2025</span></div>
+                    <div className="sp-contact-item"><span className="sp-contact-label">Student Type</span><span className="sp-contact-val">{profile.student_type}</span></div>
+                    <div className="sp-contact-item"><span className="sp-contact-label">Card ID</span><span className="sp-contact-val">{profile.student_card_id || '-'}</span></div>
+                    <div className="sp-contact-item"><span className="sp-contact-label">Graduation Year</span><span className="sp-contact-val">{profile.graduation_year || '-'}</span></div>
                   </div>
-                  <div className="sp-card-title" style={{ margin: '1.5rem 0 1rem' }}>Match Score Breakdown</div>
-                  {[
-                    { label: 'Technical Skills', pct: 94 },
-                    { label: 'Profile Completeness', pct: 88 },
-                    { label: 'Academic Performance', pct: 82 },
-                  ].map(s => (
-                    <div key={s.label}>
-                      <div className="sp-score-row">
-                        <span className="sp-score-label">{s.label}</span>
-                        <span className="sp-score-pct">{s.pct}%</span>
-                      </div>
-                      <div className="sp-score-bar"><div className="sp-score-fill" style={{ width: `${s.pct}%` }} /></div>
-                    </div>
-                  ))}
                 </>
               )}
 
               {activeTab === 'experience' && (
                 <>
-                  {[
-                    { initials: 'NT', title: 'Frontend Intern', company: 'NafTech Inc. · Oran', date: 'Jun 2024 – Sep 2024', desc: 'Built React components for the company\'s internal dashboard. Collaborated with backend team on REST API integration.' },
-                    { initials: 'FT', title: 'Web Dev Freelancer', company: 'Freelance · Remote', date: 'Jan 2024 – May 2024', desc: 'Developed landing pages and e-commerce sites for local businesses using React and Tailwind CSS.' },
-                  ].map(e => (
-                    <div className="sp-timeline-item" key={e.title}>
-                      <div className="sp-timeline-icon">{e.initials}</div>
-                      <div className="sp-timeline-info">
-                        <div className="sp-timeline-title">{e.title}</div>
-                        <div className="sp-timeline-sub">{e.company}</div>
-                        <div className="sp-timeline-date">{e.date}</div>
-                        <div className="sp-timeline-desc">{e.desc}</div>
+                  {profile.experiences && profile.experiences.length > 0 ? profile.experiences.map((e, i) => {
+                    const title = typeof e === 'string' ? e : e.title;
+                    const company = typeof e === 'string' ? '' : e.company;
+                    const duration = typeof e === 'string' ? '' : e.duration;
+                    const desc = typeof e === 'string' ? '' : e.description;
+                    const expInitials = title ? title.substring(0, 2).toUpperCase() : 'EX';
+                    return (
+                      <div className="sp-timeline-item" key={i}>
+                        <div className="sp-timeline-icon">{expInitials}</div>
+                        <div className="sp-timeline-info">
+                          <div className="sp-timeline-title">{title}</div>
+                          <div className="sp-timeline-sub">{company}</div>
+                          <div className="sp-timeline-date">{duration}</div>
+                          <div className="sp-timeline-desc">{desc}</div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  }) : <div style={{ fontSize: '14px', color: '#6b7280' }}>No experience added yet.</div>}
                 </>
               )}
 
               {activeTab === 'education' && (
                 <>
-                  {[
-                    { initials: 'UA', title: 'L3 Computer Science', company: 'Université Alger 1', date: '2022 – Present', desc: 'GPA: 15.4/20 · Specialization in Software Engineering' },
-                    { initials: 'LY', title: 'Baccalauréat Sciences', company: 'Lycée Ben Aknoun · Alger', date: '2019 – 2022', desc: 'Mention: Très Bien · Major: Mathematics' },
-                  ].map(e => (
-                    <div className="sp-timeline-item" key={e.title}>
-                      <div className="sp-timeline-icon">{e.initials}</div>
+                  {profile.university ? (
+                    <div className="sp-timeline-item">
+                      <div className="sp-timeline-icon">UN</div>
                       <div className="sp-timeline-info">
-                        <div className="sp-timeline-title">{e.title}</div>
-                        <div className="sp-timeline-sub">{e.company}</div>
-                        <div className="sp-timeline-date">{e.date}</div>
-                        <div className="sp-timeline-desc">{e.desc}</div>
+                        <div className="sp-timeline-title">{profile.major || 'Major not specified'}</div>
+                        <div className="sp-timeline-sub">{profile.university}</div>
+                        <div className="sp-timeline-date">Graduation: {profile.graduation_year || 'Unknown'}</div>
+                        <div className="sp-timeline-desc">Speciality: {profile.speciality || 'None'}</div>
                       </div>
                     </div>
-                  ))}
+                  ) : (
+                    <div style={{ fontSize: '14px', color: '#6b7280' }}>No education data added yet.</div>
+                  )}
                 </>
               )}
 
               {activeTab === 'skills' && (
                 <>
                   <div className="sp-card-title" style={{ marginBottom: '1rem' }}>Technical Skills</div>
-                  {[
-                    { label: 'React / Next.js', pct: 90 },
-                    { label: 'Node.js / Express', pct: 75 },
-                    { label: 'Python', pct: 70 },
-                    { label: 'UI/UX & Figma', pct: 65 },
-                    { label: 'DevOps / Docker', pct: 50 },
-                  ].map(s => (
-                    <div key={s.label}>
-                      <div className="sp-score-row">
-                        <span className="sp-score-label">{s.label}</span>
-                        <span className="sp-score-pct">{s.pct}%</span>
+                  {profile.skills && profile.skills.length > 0 ? profile.skills.map((s, i) => {
+                    const label = typeof s === 'string' ? s : s.name
+                    const pct = typeof s === 'string' ? 50 : (s.percentage || 50)
+                    return (
+                      <div key={i}>
+                        <div className="sp-score-row">
+                          <span className="sp-score-label">{label}</span>
+                          <span className="sp-score-pct">{pct}%</span>
+                        </div>
+                        <div className="sp-score-bar"><div className="sp-score-fill" style={{ width: `${pct}%` }} /></div>
                       </div>
-                      <div className="sp-score-bar"><div className="sp-score-fill" style={{ width: `${s.pct}%` }} /></div>
-                    </div>
-                  ))}
+                    )
+                  }) : <div style={{ fontSize: '14px', color: '#6b7280' }}>No skills added.</div>}
                 </>
               )}
 
               {activeTab === 'cv' && (
                 <div className="cv-preview-tab">
                   <div className="sp-card-title" style={{ marginBottom: '1.5rem' }}>Curriculum Vitae</div>
-                  <div className="cv-preview-placeholder">
-                    <div className="cv-placeholder-img">📄</div>
-                    <h3>CV_Amine_Khelifi_2026.pdf</h3>
-                    <p>Verified by University of Alger 1</p>
-                    <div className="cv-actions">
-                      <button className="sp-btn-primary">View Full CV</button>
-                      <button className="sp-btn-outline">Download PDF</button>
+                  {profile.cv_url ? (
+                    <div className="cv-preview-placeholder">
+                      <div className="cv-placeholder-img">📄</div>
+                      <h3>Your CV is available</h3>
+                      <div className="cv-actions">
+                        <a href={`http://127.0.0.1:8000${profile.cv_url}`} target="_blank" rel="noreferrer" className="sp-btn-primary" style={{textDecoration:'none', color:'white', padding:'8px 16px', borderRadius:'6px', display:'inline-block'}}>View Full CV</a>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="cv-preview-placeholder">
+                      <p>You have not generated a CV yet.</p>
+                      <button className="sp-btn-primary" onClick={() => navigate('/cv-builder')}>Create CV Now</button>
+                    </div>
+                  )}
                 </div>
               )}
 
             </div>
           </div>
         </div>
-      </div>
+        </div>
+        </div>
+      </main>
     </div>
   )
 }

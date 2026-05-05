@@ -1,18 +1,36 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getOffers } from '../../api';
 import './Offers.css';
 
-const offers = [
-  { id: 1, initials: 'FS', color: 'blue', title: 'Full Stack Intern', location: 'Oran · Hybride', tags: ['React', 'Node.js'], tagColor: ['blue', 'teal'], count: 14, open: true, date: 'Posted 2 days ago' },
-  { id: 2, initials: 'BE', color: 'teal', title: 'Backend Intern', location: 'Oran · Présentiel', tags: ['Django', 'PostgreSQL'], tagColor: ['teal', 'gray'], count: 9, open: true, date: 'Posted 5 days ago' },
-  { id: 3, initials: 'DS', color: 'amber', title: 'Data Analyst Intern', location: 'Alger · Distanciel', tags: ['Python', 'Pandas'], tagColor: ['gray', 'gray'], count: 15, open: false, date: 'Posted 2 weeks ago' },
-];
+
 
 const tagColorMap = { blue: 'pb', teal: 'pt', gray: 'pg', purple: 'ppu', amber: 'pa' };
 const avColorMap  = { blue: 'av-blue', teal: 'av-teal', amber: 'av-amber' };
 
 const Offers = () => {
   const navigate = useNavigate();
+  const [offers, setOffers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchOffers = async () => {
+      try {
+        const data = await getOffers();
+        setOffers(data);
+      } catch (err) {
+        console.error('Error fetching offers:', err);
+        setError('Failed to load offers.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchOffers();
+  }, []);
+
+  if (loading) return <div style={{ padding: '50px', textAlign: 'center' }}>Loading offers...</div>;
+  if (error) return <div style={{ padding: '50px', textAlign: 'center', color: 'red' }}>{error}</div>;
 
   return (
     <div className="offers-page">
@@ -40,37 +58,49 @@ const Offers = () => {
         </div>
 
         <div className="op-grid">
-          {offers.map((o) => (
-            <div className="op-card" key={o.id}>
-              <div className="op-card-top">
-                <div className={`op-av ${avColorMap[o.color]}`}>{o.initials}</div>
-                <div className="op-status-wrap">
-                  <div className={o.open ? 'op-dot-green' : 'op-dot-gray'} />
-                  <span className={o.open ? 'op-ind-open' : 'op-ind-closed'}>{o.open ? 'Accepting Applications' : 'Closed'}</span>
-                </div>
-              </div>
-              <h3 className="op-title">{o.title}</h3>
-              <p className="op-location">{o.location}</p>
+          {offers.length === 0 ? (
+            <div style={{ padding: '20px', color: '#6b7280' }}>No offers posted yet.</div>
+          ) : (
+            offers.map((o) => {
+              const initials = o.title ? o.title.substring(0, 2).toUpperCase() : 'OF';
+              const colorKeys = ['blue', 'teal', 'amber'];
+              const colorObj = colorKeys[o.id % colorKeys.length];
+              const isActive = o.is_active !== undefined ? o.is_active : true;
               
-              <div className="op-tags">
-                {o.tags.map((t, idx) => (
-                   <span key={t} className={`op-pill ${tagColorMap[o.tagColor[idx]]}`}>{t}</span>
-                ))}
-              </div>
+              return (
+                <div className="op-card" key={o.id}>
+                  <div className="op-card-top">
+                    <div className={`op-av ${avColorMap[colorObj]}`}>{initials}</div>
+                    <div className="op-status-wrap">
+                      <div className={isActive ? 'op-dot-green' : 'op-dot-gray'} />
+                      <span className={isActive ? 'op-ind-open' : 'op-ind-closed'}>{isActive ? 'Accepting Applications' : 'Closed'}</span>
+                    </div>
+                  </div>
+                  <h3 className="op-title">{o.title}</h3>
+                  <p className="op-location">{o.location || o.work_model || 'Not specified'}</p>
+                  
+                  <div className="op-tags">
+                    {o.tags ? o.tags.map((t, idx) => {
+                      const tagName = typeof t === 'string' ? t : t.name;
+                      return <span key={idx} className={`op-pill pg`}>{tagName}</span>
+                    }) : <span className="op-pill pg">No tags</span>}
+                  </div>
 
-              <div className="op-footer">
-                <div className="op-count">
-                   <strong>{o.count}</strong> applicants
+                  <div className="op-footer">
+                    <div className="op-count">
+                      <strong>{o.applicant_count || 0}</strong> applicants
+                    </div>
+                    <div className="op-date">{new Date(o.created_at).toLocaleDateString()}</div>
+                  </div>
+
+                  <div className="op-card-actions">
+                    <button className="op-btn-outline" onClick={() => navigate(`/candidates?offer=${o.id}`)}>View Applicants</button>
+                    <button className="op-btn-text">Edit</button>
+                  </div>
                 </div>
-                <div className="op-date">{o.date}</div>
-              </div>
-
-              <div className="op-card-actions">
-                 <button className="op-btn-outline" onClick={() => navigate('/candidates')}>View Applicants</button>
-                 <button className="op-btn-text">Edit</button>
-              </div>
-            </div>
-          ))}
+              );
+            })
+          )}
         </div>
       </div>
     </div>

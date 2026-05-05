@@ -17,15 +17,16 @@ const ProfileWrapper = () => {
 
     if (!user) return null;
 
-    switch (user.role) {
-        case 'Company':
+    switch (user.role?.toLowerCase()) {
+        case 'company':
             return <CompanyProfile />;
-        case 'Student':
+        case 'student':
             return <StudentProfile />;
-        case 'University':
+        case 'university':
+        case 'administration':
             return <UnivProfile />;
         default:
-            return <div>Invalid Role Detected</div>;
+            return <div>Invalid Role Detected: {user.role}</div>;
     }
 };
 

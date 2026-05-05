@@ -94,8 +94,8 @@ def register(request):
        CompanyProfile(
            user_id=str(user.id),
            director_full_name=data.get('director_full_name', ''),
-              director_email=data.get('director_email', ''),
-                director_phone=data.get('director_phone', '')
+           director_email=data.get('director_email', ''),
+           director_phone=data.get('director_phone', '')
        ).save()
     elif data['role'] == 'administration':
         AdministrationProfile(
@@ -278,6 +278,11 @@ def company_profile(request):
             'website': profile.website if profile else '',
             'industry': profile.industry if profile else '',
             'phone': profile.phone if profile else '',
+            'tagline': profile.tagline if profile else '',
+            'founded': profile.founded if profile else '',
+            'size': profile.size if profile else '',
+            'tech_stack': profile.tech_stack if profile else [],
+            'culture': profile.culture if profile else [],
             'director_full_name': profile.director_full_name if profile else '',
             'director_email': profile.director_email if profile else '',
             'director_phone': profile.director_phone if profile else '',
@@ -285,18 +290,25 @@ def company_profile(request):
 
     elif request.method == 'PUT':
         data = request.data
-        if profile:
-            profile.company_name = data.get('company_name', profile.company_name)
-            profile.description = data.get('description', profile.description)
-            profile.wilaya = data.get('wilaya', profile.wilaya)
-            profile.address = data.get('address', profile.address)
-            profile.website = data.get('website', profile.website)
-            profile.industry = data.get('industry', profile.industry)
-            profile.phone = data.get('phone', profile.phone)
-            profile.director_full_name = data.get('director_full_name', profile.director_full_name)
-            profile.director_email = data.get('director_email', profile.director_email)
-            profile.director_phone = data.get('director_phone', profile.director_phone)
-            profile.save()
+        if not profile:
+             profile = CompanyProfile(user_id=str(user.id))
+             
+        profile.company_name = data.get('company_name', profile.company_name)
+        profile.description = data.get('description', profile.description)
+        profile.wilaya = data.get('wilaya', profile.wilaya)
+        profile.address = data.get('address', profile.address)
+        profile.website = data.get('website', profile.website)
+        profile.industry = data.get('industry', profile.industry)
+        profile.phone = data.get('phone', profile.phone)
+        profile.tagline = data.get('tagline', profile.tagline)
+        profile.founded = data.get('founded', profile.founded)
+        profile.size = data.get('size', profile.size)
+        profile.tech_stack = data.get('tech_stack', profile.tech_stack)
+        profile.culture = data.get('culture', profile.culture)
+        profile.director_full_name = data.get('director_full_name', profile.director_full_name)
+        profile.director_email = data.get('director_email', profile.director_email)
+        profile.director_phone = data.get('director_phone', profile.director_phone)
+        profile.save()
         return Response({'message': 'Company profile updated successfully'})
     
 
@@ -317,12 +329,13 @@ def administration_profile(request):
             'email': user.email,
             'phone': user.phone,
             'director_full_name': user.director_full_name,
-            'director_email': user.director_email,
-            'director_phone': user.director_phone,
+            'full_name': user.full_name,
             'university': profile.university if profile else '',
+            'bio': profile.bio if profile else '',
+            'rector_name': profile.rector_name if profile else '',
+            'logo_url': profile.logo_url if profile else '',
             'wilaya': profile.wilaya if profile else '',
             'location': profile.location if profile else '',
-            'logo_url': profile.logo_url if profile else '',
             'director_full_name': profile.director_full_name if profile else '',
             'director_email': profile.director_email if profile else '',
             'director_phone': profile.director_phone if profile else '',
@@ -330,14 +343,18 @@ def administration_profile(request):
 
     elif request.method == 'PUT':
         data = request.data
-        if profile:
-            profile.university = data.get('university', profile.university)
-            profile.wilaya = data.get('wilaya', profile.wilaya)
-            profile.location = data.get('location', profile.location)
-            profile.director_full_name = data.get('director_full_name', profile.director_full_name)
-            profile.director_email = data.get('director_email', profile.director_email)
-            profile.director_phone = data.get('director_phone', profile.director_phone)
-            profile.save()
+        if not profile:
+             profile = AdministrationProfile(user_id=str(user.id))
+             
+        profile.university = data.get('university', profile.university)
+        profile.bio = data.get('bio', profile.bio)
+        profile.rector_name = data.get('rector_name', profile.rector_name)
+        profile.wilaya = data.get('wilaya', profile.wilaya)
+        profile.location = data.get('location', profile.location)
+        profile.director_full_name = data.get('director_full_name', profile.director_full_name)
+        profile.director_email = data.get('director_email', profile.director_email)
+        profile.director_phone = data.get('director_phone', profile.director_phone)
+        profile.save()
         return Response({'message': 'Administration profile updated successfully'})
     
 
@@ -505,225 +522,255 @@ def public_administration_profile(request, administration_id):
 
 @api_view(['POST', 'PUT'])
 def save_cv(request):
-    user = get_user_from_token(request)
-    if not user:
-        return Response({'error': 'Unauthorized'}, status=status.HTTP_401_UNAUTHORIZED)
+    try:
+        user = get_user_from_token(request)
+        if not user:
+            return Response({'error': 'Unauthorized'}, status=status.HTTP_401_UNAUTHORIZED)
 
-    if user.role != 'student':
-        return Response({'error': 'Only students can save CV'}, status=status.HTTP_403_FORBIDDEN)
+        if user.role != 'student':
+            return Response({'error': 'Only students can save CV'}, status=status.HTTP_403_FORBIDDEN)
 
-    data = request.data
-    profile = StudentProfile.objects(user_id=str(user.id)).first()
+        data = request.data
+        profile = StudentProfile.objects(user_id=str(user.id)).first()
 
-    if not profile:
-        profile = StudentProfile(user_id=str(user.id))
+        if not profile:
+            profile = StudentProfile(user_id=str(user.id))
 
-    # save CV data
-    profile.bio = data.get('bio', profile.bio)
-    profile.university = data.get('university', profile.university)
-    profile.major = data.get('major', profile.major)
-    profile.speciality = data.get('speciality', profile.speciality)
-    profile.graduation_year = data.get('graduation_year', profile.graduation_year)
-    profile.github_link = data.get('github_link', profile.github_link)
-    profile.portfolio_link = data.get('portfolio_link', profile.portfolio_link)
-    profile.skills = data.get('skills', profile.skills)
-    profile.languages = data.get('languages', profile.languages)
-    profile.experiences = data.get('experiences', profile.experiences)
-    profile.certifications = data.get('certifications', profile.certifications)
-    profile.save()
+        # save phone to user model
+        user.phone = data.get('phone', user.phone)
+        user.save()
 
-    # generate PDF CV
-    from reportlab.pdfgen import canvas
-    from reportlab.lib.pagesizes import A4
-    from reportlab.lib import colors
-    from reportlab.lib.units import cm
+        # save CV data
+        profile.bio = data.get('bio', profile.bio)
+        profile.wilaya = data.get('wilaya', profile.wilaya)
+        profile.university = data.get('university', profile.university)
+        profile.major = data.get('major', profile.major)
+        profile.speciality = data.get('speciality', profile.speciality)
+        profile.graduation_year = data.get('graduation_year', profile.graduation_year)
+        profile.github_link = data.get('github_link', profile.github_link)
+        profile.portfolio_link = data.get('portfolio_link', profile.portfolio_link)
+        profile.skills = data.get('skills', profile.skills)
+        profile.languages = data.get('languages', profile.languages)
+        profile.experiences = data.get('experiences', profile.experiences)
+        profile.certifications = data.get('certifications', profile.certifications)
+        profile.save()
 
-    cvs_dir = os.path.join(settings.BASE_DIR, 'media', 'cvs')
-    os.makedirs(cvs_dir, exist_ok=True)
+        # generate PDF CV
+        from reportlab.pdfgen import canvas
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib import colors
+        from reportlab.lib.units import cm
+        import time
 
-    filename = f"cv_{str(user.id)}.pdf"
-    filepath = os.path.join(cvs_dir, filename)
+        def make_safe(s):
+            if s is None: return ""
+            # Helvetica only supports latin-1, replace other chars with '?'
+            return str(s).encode('latin-1', 'replace').decode('latin-1')
 
-    c = canvas.Canvas(filepath, pagesize=A4)
-    width, height = A4
+        cvs_dir = os.path.join(settings.BASE_DIR, 'media', 'cvs')
+        os.makedirs(cvs_dir, exist_ok=True)
 
-    # header background
-    c.setFillColor(colors.HexColor('#2C3E50'))
-    c.rect(0, height - 5.5*cm, width, 5.5*cm, fill=True, stroke=False)
+        # Use timestamp to avoid file locking issues on Windows if PDF is open in viewer
+        filename = f"cv_{str(user.id)}_{int(time.time())}.pdf"
+        filepath = os.path.join(cvs_dir, filename)
 
-    # student name
-    c.setFillColor(colors.white)
-    c.setFont("Helvetica-Bold", 24)
-    c.drawString(2*cm, height - 2*cm, user.full_name.upper())
+        c = canvas.Canvas(filepath, pagesize=A4)
+        width, height = A4
 
-    # speciality under name
-    c.setFont("Helvetica", 13)
-    c.drawString(2*cm, height - 2.8*cm, profile.speciality if profile.speciality else '')
-
-    # contact info
-    c.setFont("Helvetica", 10)
-    contact_y = height - 3.8*cm
-    c.drawString(2*cm, contact_y, f"Email: {user.email}")
-    c.drawString(2*cm, contact_y - 0.6*cm, f"Phone: {user.phone}")
-    c.drawString(10*cm, contact_y, f"Wilaya: {profile.wilaya if profile.wilaya else ''}")
-    c.drawString(10*cm, contact_y - 0.6*cm, f"University: {profile.university if profile.university else ''}")
-
-    current_y = height - 6.5*cm
-
-    # about me section
-    if profile.bio:
+        # header background
         c.setFillColor(colors.HexColor('#2C3E50'))
-        c.setFont("Helvetica-Bold", 13)
-        c.drawString(2*cm, current_y, "ABOUT ME")
-        current_y -= 0.4*cm
-        c.setFillColor(colors.HexColor('#2C3E50'))
-        c.rect(2*cm, current_y, width - 4*cm, 0.05*cm, fill=True, stroke=False)
-        current_y -= 0.6*cm
-        c.setFillColor(colors.black)
+        c.rect(0, height - 5.5*cm, width, 5.5*cm, fill=True, stroke=False)
+
+        # student name
+        c.setFillColor(colors.white)
+        c.setFont("Helvetica-Bold", 24)
+        c.drawString(2*cm, height - 2*cm, make_safe(user.full_name.upper()))
+
+        # speciality under name
+        c.setFont("Helvetica", 13)
+        c.drawString(2*cm, height - 2.8*cm, make_safe(profile.speciality if profile.speciality else ''))
+
+        # contact info
         c.setFont("Helvetica", 10)
+        contact_y = height - 3.8*cm
+        c.drawString(2*cm, contact_y, make_safe(f"Email: {user.email}"))
+        c.drawString(2*cm, contact_y - 0.6*cm, make_safe(f"Phone: {user.phone}"))
+        c.drawString(10*cm, contact_y, make_safe(f"Wilaya: {profile.wilaya if profile.wilaya else ''}"))
+        c.drawString(10*cm, contact_y - 0.6*cm, make_safe(f"University: {profile.university if profile.university else ''}"))
 
-        # wrap bio text
-        words = profile.bio.split()
-        line = ''
-        for word in words:
-            if c.stringWidth(line + word, "Helvetica", 10) < (width - 4*cm):
-                line += word + ' '
-            else:
+        current_y = height - 6.5*cm
+
+        # about me section
+        if profile.bio:
+            c.setFillColor(colors.HexColor('#2C3E50'))
+            c.setFont("Helvetica-Bold", 13)
+            c.drawString(2*cm, current_y, "ABOUT ME")
+            current_y -= 0.4*cm
+            c.setFillColor(colors.HexColor('#2C3E50'))
+            c.rect(2*cm, current_y, width - 4*cm, 0.05*cm, fill=True, stroke=False)
+            current_y -= 0.6*cm
+            c.setFillColor(colors.black)
+            c.setFont("Helvetica", 10)
+
+            # wrap bio text
+            words = str(profile.bio).split()
+            line = ''
+            for word in words:
+                safe_word = make_safe(word)
+                if c.stringWidth(line + safe_word, "Helvetica", 10) < (width - 4*cm):
+                    line += safe_word + ' '
+                else:
+                    c.drawString(2*cm, current_y, line)
+                    current_y -= 0.5*cm
+                    line = safe_word + ' '
+            if line:
                 c.drawString(2*cm, current_y, line)
-                current_y -= 0.5*cm
-                line = word + ' '
-        if line:
-            c.drawString(2*cm, current_y, line)
-            current_y -= 0.8*cm
+                current_y -= 0.8*cm
 
-    # education section
-    c.setFillColor(colors.HexColor('#2C3E50'))
-    c.setFont("Helvetica-Bold", 13)
-    c.drawString(2*cm, current_y, "EDUCATION")
-    current_y -= 0.4*cm
-    c.rect(2*cm, current_y, width - 4*cm, 0.05*cm, fill=True, stroke=False)
-    current_y -= 0.6*cm
-    c.setFillColor(colors.black)
-    c.setFont("Helvetica", 10)
-    c.drawString(2*cm, current_y, f"University: {profile.university if profile.university else ''}")
-    current_y -= 0.5*cm
-    c.drawString(2*cm, current_y, f"Major: {profile.major if profile.major else ''}   |   Speciality: {profile.speciality if profile.speciality else ''}")
-    current_y -= 0.5*cm
-    c.drawString(2*cm, current_y, f"Graduation Year: {profile.graduation_year if profile.graduation_year else ''}")
-    current_y -= 0.8*cm
-
-    # skills section
-    if profile.skills:
+        # education section
         c.setFillColor(colors.HexColor('#2C3E50'))
         c.setFont("Helvetica-Bold", 13)
-        c.drawString(2*cm, current_y, "SKILLS")
-        current_y -= 0.4*cm
-        c.rect(2*cm, current_y, width - 4*cm, 0.05*cm, fill=True, stroke=False)
-        current_y -= 0.6*cm
-        for skill in profile.skills:
-            skill_name = skill.get('name', '') if isinstance(skill, dict) else str(skill)
-            skill_pct = skill.get('percentage', 0) if isinstance(skill, dict) else 0
-            c.setFillColor(colors.black)
-            c.setFont("Helvetica", 10)
-            c.drawString(2*cm, current_y, skill_name)
-            # draw percentage bar background
-            c.setFillColor(colors.HexColor('#DDDDDD'))
-            c.rect(7*cm, current_y - 0.1*cm, 8*cm, 0.35*cm, fill=True, stroke=False)
-            # draw percentage bar fill
-            c.setFillColor(colors.HexColor('#2C3E50'))
-            c.rect(7*cm, current_y - 0.1*cm, 8*cm * skill_pct / 100, 0.35*cm, fill=True, stroke=False)
-            # percentage text
-            c.setFillColor(colors.black)
-            c.drawString(15.5*cm, current_y, f"{skill_pct}%")
-            current_y -= 0.6*cm
-        current_y -= 0.3*cm
-
-    # languages section
-    if profile.languages:
-        c.setFillColor(colors.HexColor('#2C3E50'))
-        c.setFont("Helvetica-Bold", 13)
-        c.drawString(2*cm, current_y, "LANGUAGES")
-        current_y -= 0.4*cm
-        c.rect(2*cm, current_y, width - 4*cm, 0.05*cm, fill=True, stroke=False)
-        current_y -= 0.6*cm
-        for lang in profile.languages:
-            lang_name = lang.get('name', '') if isinstance(lang, dict) else str(lang)
-            lang_pct = lang.get('percentage', 0) if isinstance(lang, dict) else 0
-            c.setFillColor(colors.black)
-            c.setFont("Helvetica", 10)
-            c.drawString(2*cm, current_y, lang_name)
-            c.setFillColor(colors.HexColor('#DDDDDD'))
-            c.rect(7*cm, current_y - 0.1*cm, 8*cm, 0.35*cm, fill=True, stroke=False)
-            c.setFillColor(colors.HexColor('#2C3E50'))
-            c.rect(7*cm, current_y - 0.1*cm, 8*cm * lang_pct / 100, 0.35*cm, fill=True, stroke=False)
-            c.setFillColor(colors.black)
-            c.drawString(15.5*cm, current_y, f"{lang_pct}%")
-            current_y -= 0.6*cm
-        current_y -= 0.3*cm
-
-    # experiences section
-    if profile.experiences:
-        c.setFillColor(colors.HexColor('#2C3E50'))
-        c.setFont("Helvetica-Bold", 13)
-        c.drawString(2*cm, current_y, "EXPERIENCES")
-        current_y -= 0.4*cm
-        c.rect(2*cm, current_y, width - 4*cm, 0.05*cm, fill=True, stroke=False)
-        current_y -= 0.6*cm
-        for exp in profile.experiences:
-            title = exp.get('title', '') if isinstance(exp, dict) else str(exp)
-            company = exp.get('company', '') if isinstance(exp, dict) else ''
-            duration = exp.get('duration', '') if isinstance(exp, dict) else ''
-            description = exp.get('description', '') if isinstance(exp, dict) else ''
-            c.setFillColor(colors.black)
-            c.setFont("Helvetica-Bold", 10)
-            c.drawString(2*cm, current_y, f"{title} @ {company} - {duration}")
-            current_y -= 0.5*cm
-            c.setFont("Helvetica", 10)
-            c.drawString(2*cm, current_y, description)
-            current_y -= 0.7*cm
-        current_y -= 0.3*cm
-
-    # certifications section
-    if profile.certifications:
-        c.setFillColor(colors.HexColor('#2C3E50'))
-        c.setFont("Helvetica-Bold", 13)
-        c.drawString(2*cm, current_y, "CERTIFICATIONS")
-        current_y -= 0.4*cm
-        c.rect(2*cm, current_y, width - 4*cm, 0.05*cm, fill=True, stroke=False)
-        current_y -= 0.6*cm
-        for cert in profile.certifications:
-            c.setFillColor(colors.black)
-            c.setFont("Helvetica", 10)
-            c.drawString(2*cm, current_y, f"• {cert}")
-            current_y -= 0.5*cm
-        current_y -= 0.3*cm
-
-    # links section
-    if profile.github_link or profile.portfolio_link:
-        c.setFillColor(colors.HexColor('#2C3E50'))
-        c.setFont("Helvetica-Bold", 13)
-        c.drawString(2*cm, current_y, "LINKS")
+        c.drawString(2*cm, current_y, "EDUCATION")
         current_y -= 0.4*cm
         c.rect(2*cm, current_y, width - 4*cm, 0.05*cm, fill=True, stroke=False)
         current_y -= 0.6*cm
         c.setFillColor(colors.black)
         c.setFont("Helvetica", 10)
-        if profile.github_link:
-            c.drawString(2*cm, current_y, f"Github: {profile.github_link}")
-            current_y -= 0.5*cm
-        if profile.portfolio_link:
-            c.drawString(2*cm, current_y, f"Portfolio: {profile.portfolio_link}")
+        c.drawString(2*cm, current_y, make_safe(f"University: {profile.university if profile.university else ''}"))
+        current_y -= 0.5*cm
+        c.drawString(2*cm, current_y, make_safe(f"Major: {profile.major if profile.major else ''}   |   Speciality: {profile.speciality if profile.speciality else ''}"))
+        current_y -= 0.5*cm
+        c.drawString(2*cm, current_y, make_safe(f"Graduation Year: {profile.graduation_year if profile.graduation_year else ''}"))
+        current_y -= 0.8*cm
 
-    c.save()
+        # skills section
+        if profile.skills:
+            c.setFillColor(colors.HexColor('#2C3E50'))
+            c.setFont("Helvetica-Bold", 13)
+            c.drawString(2*cm, current_y, "SKILLS")
+            current_y -= 0.4*cm
+            c.rect(2*cm, current_y, width - 4*cm, 0.05*cm, fill=True, stroke=False)
+            current_y -= 0.6*cm
+            for skill in profile.skills:
+                skill_name = skill.get('name', '') if isinstance(skill, dict) else str(skill)
+                skill_pct = skill.get('percentage', 0) if isinstance(skill, dict) else 0
+                c.setFillColor(colors.black)
+                c.setFont("Helvetica", 10)
+                c.drawString(2*cm, current_y, make_safe(skill_name))
+                # draw percentage bar background
+                c.setFillColor(colors.HexColor('#DDDDDD'))
+                c.rect(7*cm, current_y - 0.1*cm, 8*cm, 0.35*cm, fill=True, stroke=False)
+                # draw percentage bar fill
+                c.setFillColor(colors.HexColor('#2C3E50'))
+                try:
+                    pct = float(skill_pct)
+                except:
+                    pct = 0
+                c.rect(7*cm, current_y - 0.1*cm, 8*cm * pct / 100, 0.35*cm, fill=True, stroke=False)
+                # percentage text
+                c.setFillColor(colors.black)
+                c.drawString(15.5*cm, current_y, f"{int(pct)}%")
+                current_y -= 0.6*cm
+            current_y -= 0.3*cm
 
-    # save cv_url in profile
-    profile.cv_url = f'/media/cvs/{filename}'
-    profile.save()
+        # languages section
+        if profile.languages:
+            c.setFillColor(colors.HexColor('#2C3E50'))
+            c.setFont("Helvetica-Bold", 13)
+            c.drawString(2*cm, current_y, "LANGUAGES")
+            current_y -= 0.4*cm
+            c.rect(2*cm, current_y, width - 4*cm, 0.05*cm, fill=True, stroke=False)
+            current_y -= 0.6*cm
+            for lang in profile.languages:
+                lang_name = lang.get('name', '') if isinstance(lang, dict) else str(lang)
+                lang_pct = lang.get('percentage', 0) if isinstance(lang, dict) else 0
+                c.setFillColor(colors.black)
+                c.setFont("Helvetica", 10)
+                c.drawString(2*cm, current_y, make_safe(lang_name))
+                c.setFillColor(colors.HexColor('#DDDDDD'))
+                c.rect(7*cm, current_y - 0.1*cm, 8*cm, 0.35*cm, fill=True, stroke=False)
+                c.setFillColor(colors.HexColor('#2C3E50'))
+                try:
+                    pct = float(lang_pct)
+                except:
+                    pct = 0
+                c.rect(7*cm, current_y - 0.1*cm, 8*cm * pct / 100, 0.35*cm, fill=True, stroke=False)
+                c.setFillColor(colors.black)
+                c.drawString(15.5*cm, current_y, f"{int(pct)}%")
+                current_y -= 0.6*cm
+            current_y -= 0.3*cm
 
-    return Response({
-        'message': 'CV saved and generated successfully!',
-        'cv_url': f'/media/cvs/{filename}'
-    }, status=status.HTTP_200_OK)
+        # experiences section
+        if profile.experiences:
+            c.setFillColor(colors.HexColor('#2C3E50'))
+            c.setFont("Helvetica-Bold", 13)
+            c.drawString(2*cm, current_y, "EXPERIENCES")
+            current_y -= 0.4*cm
+            c.rect(2*cm, current_y, width - 4*cm, 0.05*cm, fill=True, stroke=False)
+            current_y -= 0.6*cm
+            for exp in profile.experiences:
+                title = exp.get('title', '') if isinstance(exp, dict) else str(exp)
+                company = exp.get('company', '') if isinstance(exp, dict) else ''
+                duration = exp.get('duration', '') if isinstance(exp, dict) else ''
+                description = exp.get('description', '') if isinstance(exp, dict) else ''
+                c.setFillColor(colors.black)
+                c.setFont("Helvetica-Bold", 10)
+                c.drawString(2*cm, current_y, make_safe(f"{title} @ {company} - {duration}"))
+                current_y -= 0.5*cm
+                c.setFont("Helvetica", 10)
+                c.drawString(2*cm, current_y, make_safe(description))
+                current_y -= 0.7*cm
+            current_y -= 0.3*cm
+
+        # certifications section
+        if profile.certifications:
+            c.setFillColor(colors.HexColor('#2C3E50'))
+            c.setFont("Helvetica-Bold", 13)
+            c.drawString(2*cm, current_y, "CERTIFICATIONS")
+            current_y -= 0.4*cm
+            c.rect(2*cm, current_y, width - 4*cm, 0.05*cm, fill=True, stroke=False)
+            current_y -= 0.6*cm
+            for cert in profile.certifications:
+                c.setFillColor(colors.black)
+                c.setFont("Helvetica", 10)
+                c.drawString(2*cm, current_y, make_safe(f"• {cert}"))
+                current_y -= 0.5*cm
+            current_y -= 0.3*cm
+
+        # links section
+        if profile.github_link or profile.portfolio_link:
+            c.setFillColor(colors.HexColor('#2C3E50'))
+            c.setFont("Helvetica-Bold", 13)
+            c.drawString(2*cm, current_y, "LINKS")
+            current_y -= 0.4*cm
+            c.rect(2*cm, current_y, width - 4*cm, 0.05*cm, fill=True, stroke=False)
+            current_y -= 0.6*cm
+            c.setFillColor(colors.black)
+            c.setFont("Helvetica", 10)
+            if profile.github_link:
+                c.drawString(2*cm, current_y, make_safe(f"Github: {profile.github_link}"))
+                current_y -= 0.5*cm
+            if profile.portfolio_link:
+                c.drawString(2*cm, current_y, f"Portfolio: {profile.portfolio_link}")
+
+        c.save()
+
+        # save cv_url in profile
+        profile.cv_url = f'/media/cvs/{filename}'
+        profile.save()
+
+        return Response({
+            'message': 'CV saved and generated successfully!',
+            'cv_url': f'/media/cvs/{filename}'
+        }, status=status.HTTP_200_OK)
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Error in save_cv:\n{error_details}")
+        # On Windows, PermissionError often means the PDF is open in a viewer
+        if "Permission denied" in str(e):
+             return Response({'error': "Permission Denied: Please close the PDF if you have it open in a viewer and try again."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
 def get_cv(request):
@@ -740,6 +787,8 @@ def get_cv(request):
 
     return Response({
         'bio': profile.bio,
+        'wilaya': profile.wilaya,
+        'phone': user.phone,
         'university': profile.university,
         'major': profile.major,
         'speciality': profile.speciality,

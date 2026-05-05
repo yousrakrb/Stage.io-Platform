@@ -198,3 +198,34 @@
 }
 
 .cand-btn-outline:hover { background: #f8fafc; }
+
+.cand-av-img {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #e2e8f0;
+}
+
+.cand-status-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.cand-status-badge.pending { background: #fef9c3; color: #854d0e; } /* yellow */
+.cand-status-badge.accepted { background: #dcfce7; color: #166534; } /* green */
+.cand-status-badge.refused { background: #fee2e2; color: #991b1b; } /* red */
+.cand-status-badge.validated { background: #dbeafe; color: #1e40af; } /* blue */
+
+.cand-card.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: #64748b;
+  font-style: italic;
+  font-size: 13px;
+}

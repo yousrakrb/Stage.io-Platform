@@ -1,51 +1,76 @@
-import React, { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { getStudentProfile, updateStudentProfile, uploadAvatar } from '../../api'
+import StudentSidebar from '../UnifiedLayouts/StudentSidebar'
+import '../StudentDash/StudentDash.css'
 import './StudentProfile.css'
 
 const StudentProfileEdit = () => {
   const [activeTab, setActiveTab] = useState('about')
   const [isEditing, setIsEditing] = useState(false)
+  const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
 
   // State for profile data
   const [profileData, setProfileData] = useState({
-    name: 'Amine Khelifi',
-    profilePic: null,
-    role: 'Frontend Developer',
-    location: 'Alger, Algeria',
-    email: 'amine.khelifi@univ-alger.dz',
-    phone: '+213 555 123 456',
-    linkedin: 'linkedin.com/in/aminekhelifi',
-    github: 'github.com/aminekhelifi',
-    dob: 'March 14, 2002',
-    gender: 'Male',
-    nationality: 'Algerian',
-    availability: 'July 2025',
-    bio: 'L3 Computer Science student at University of Alger 1. Passionate about building modern web applications and solving complex problems.',
-    skills: ['React', 'TypeScript', 'Node.js', 'Git', 'Figma', 'CSS', 'Python', 'REST APIs'],
-    languages: [
-      { lang: 'Arabic', level: 'Native' },
-      { lang: 'French', level: 'Fluent' },
-      { lang: 'English', level: 'Professional' },
-    ]
+    full_name: '',
+    avatar_url: null,
+    speciality: '',
+    wilaya: '',
+    email: '',
+    phone: '',
+    github_link: '',
+    portfolio_link: '',
+    bio: '',
+    graduation_year: '',
+    student_type: '',
+    student_card_id: '',
+    skills: [],
+    languages: [],
+    experiences: [],
+    university: ''
   })
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const data = await getStudentProfile()
+        setProfileData(data)
+      } catch (err) {
+        console.error('Error fetching profile:', err)
+        alert('Failed to load profile data.')
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchProfile()
+  }, [])
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
     setProfileData(prev => ({ ...prev, [name]: value }))
   }
 
-  const handleSave = () => {
-    setIsEditing(false)
-    alert('Profile updated successfully!')
+  const handleSave = async () => {
+    try {
+      await updateStudentProfile(profileData)
+      setIsEditing(false)
+      alert('Profile updated successfully!')
+    } catch (err) {
+      console.error('Error updating profile:', err)
+      alert('Failed to update profile.')
+    }
   }
 
+  if (loading) return <div style={{ padding: '50px', textAlign: 'center' }}>Loading profile...</div>
+
   return (
-    <div className="sp-page">
-
-
-      {/* ── Body ── */}
-      <div className="sp-body">
+    <div className="db">
+      <StudentSidebar />
+      <main className="main">
+        <div className="sp-page">
+          {/* ── Body ── */}
+          <div className="sp-body">
 
         {/* ── Left Panel ── */}
         <div className="sp-left">
@@ -59,20 +84,25 @@ const StudentProfileEdit = () => {
             <div className="sp-avatar-wrap">
               <div style={{ position: 'relative', display: 'inline-block' }}>
                 <div className="sp-avatar" style={{ overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {profileData.profilePic ? (
-                    <img src={profileData.profilePic} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  {profileData.avatar_url ? (
+                    <img src={`http://127.0.0.1:8000${profileData.avatar_url}`} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
-                    profileData.name.split(' ').map(n => n[0]).join('')
+                    profileData.full_name ? profileData.full_name.split(' ').map(n => n[0]).join('') : 'S'
                   )}
                 </div>
                 {isEditing && (
                   <label className="edit-avatar-btn" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: 0 }} aria-label="Edit avatar">
                     ✎
-                    <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => {
+                    <input type="file" accept="image/*" style={{ display: 'none' }} onChange={async (e) => {
                       if (e.target.files && e.target.files[0]) {
-                        const reader = new FileReader();
-                        reader.onload = (e) => setProfileData(prev => ({ ...prev, profilePic: e.target.result }));
-                        reader.readAsDataURL(e.target.files[0]);
+                        const formData = new FormData();
+                        formData.append('avatar', e.target.files[0]);
+                        try {
+                          const res = await uploadAvatar(formData);
+                          setProfileData(prev => ({ ...prev, avatar_url: res.avatar_url }));
+                        } catch (err) {
+                          alert('Failed to upload avatar');
+                        }
                       }
                     }} />
                   </label>
@@ -84,23 +114,23 @@ const StudentProfileEdit = () => {
               <div style={{ padding: '0 20px', marginTop: '10px' }}>
                 <input 
                   className="edit-input-name"
-                  name="name"
-                  value={profileData.name}
+                  name="full_name"
+                  value={profileData.full_name}
                   onChange={handleInputChange}
                   placeholder="Full Name"
                 />
                 <input 
                   className="edit-input-role"
-                  name="role"
-                  value={profileData.role}
+                  name="speciality"
+                  value={profileData.speciality}
                   onChange={handleInputChange}
-                  placeholder="Role"
+                  placeholder="Speciality"
                 />
               </div>
             ) : (
               <>
-                <div className="sp-name">{profileData.name}</div>
-                <div className="sp-role">{profileData.role}</div>
+                <div className="sp-name">{profileData.full_name}</div>
+                <div className="sp-role">{profileData.speciality}</div>
               </>
             )}
 
@@ -112,11 +142,11 @@ const StudentProfileEdit = () => {
               {isEditing ? (
                 <input 
                   className="edit-input-small"
-                  name="location"
-                  value={profileData.location}
+                  name="wilaya"
+                  value={profileData.wilaya}
                   onChange={handleInputChange}
                 />
-              ) : profileData.location}
+              ) : profileData.wilaya || 'Location not set'}
             </div>
             
             <div className="sp-stats-row">
@@ -134,9 +164,10 @@ const StudentProfileEdit = () => {
                 <button className="edit-icon-btn">✎</button>
               </div>
               <div className="sp-skill-list">
-                {profileData.skills.map((s, i) => (
-                  <span key={s} className={`sp-skill-pill ${i > 4 ? 'gray' : ''}`}>{s}</span>
-                ))}
+                {profileData.skills && profileData.skills.map((s, i) => {
+                  const label = typeof s === 'string' ? s : s.name
+                  return <span key={i} className={`sp-skill-pill ${i > 4 ? 'gray' : ''}`}>{label}</span>
+                })}
               </div>
             </div>
           </div>
@@ -148,12 +179,16 @@ const StudentProfileEdit = () => {
                 Languages
                 <button className="edit-icon-btn">✎</button>
               </div>
-              {profileData.languages.map(l => (
-                <div className="sp-lang-row" key={l.lang}>
-                  <span style={{ fontSize: '13px', fontWeight: '500' }}>{l.lang}</span>
-                  <span className="sp-lang-level">{l.level}</span>
-                </div>
-              ))}
+              {profileData.languages && profileData.languages.map((l, i) => {
+                const langName = typeof l === 'string' ? l : l.name
+                const langLevel = typeof l === 'string' ? '' : `${l.percentage}%`
+                return (
+                  <div className="sp-lang-row" key={i}>
+                    <span style={{ fontSize: '13px', fontWeight: '500' }}>{langName}</span>
+                    <span className="sp-lang-level">{langLevel}</span>
+                  </div>
+                )
+              })}
             </div>
           </div>
 
@@ -165,9 +200,9 @@ const StudentProfileEdit = () => {
           {/* Top bar */}
           <div className="sp-top-bar">
             <div className="sp-top-info">
-              <div className="sp-top-name">{profileData.name}</div>
+              <div className="sp-top-name">{profileData.full_name}</div>
               <div className="sp-top-sub">
-                Univ. Alger 1 · L3 Computer Science
+                {profileData.university || 'University not set'} · {profileData.speciality || 'Speciality not set'}
                 <span className="sp-badge available">Available</span>
               </div>
             </div>
@@ -233,9 +268,17 @@ const StudentProfileEdit = () => {
                     <div className="sp-contact-item">
                       <span className="sp-contact-label">GitHub</span>
                       {isEditing ? (
-                        <input name="github" value={profileData.github} onChange={handleInputChange} className="edit-input-inline" />
+                        <input name="github_link" value={profileData.github_link} onChange={handleInputChange} className="edit-input-inline" />
                       ) : (
-                        <span className="sp-contact-val link">{profileData.github}</span>
+                        <span className="sp-contact-val link">{profileData.github_link || '-'}</span>
+                      )}
+                    </div>
+                    <div className="sp-contact-item">
+                      <span className="sp-contact-label">Portfolio</span>
+                      {isEditing ? (
+                        <input name="portfolio_link" value={profileData.portfolio_link} onChange={handleInputChange} className="edit-input-inline" />
+                      ) : (
+                        <span className="sp-contact-val link">{profileData.portfolio_link || '-'}</span>
                       )}
                     </div>
                   </div>
@@ -246,38 +289,27 @@ const StudentProfileEdit = () => {
                   </div>
                   <div className="sp-contact-grid">
                     <div className="sp-contact-item">
-                      <span className="sp-contact-label">Date of Birth</span>
+                      <span className="sp-contact-label">Graduation Year</span>
                       {isEditing ? (
-                        <input name="dob" value={profileData.dob} onChange={handleInputChange} className="edit-input-inline" />
+                        <input name="graduation_year" value={profileData.graduation_year} onChange={handleInputChange} className="edit-input-inline" />
                       ) : (
-                        <span className="sp-contact-val">{profileData.dob}</span>
+                        <span className="sp-contact-val">{profileData.graduation_year || '-'}</span>
                       )}
                     </div>
                     <div className="sp-contact-item">
-                      <span className="sp-contact-label">Gender</span>
+                      <span className="sp-contact-label">Student Type</span>
                       {isEditing ? (
-                        <select name="gender" value={profileData.gender} onChange={handleInputChange} className="edit-input-inline">
-                          <option>Male</option>
-                          <option>Female</option>
-                        </select>
+                        <input name="student_type" value={profileData.student_type} onChange={handleInputChange} className="edit-input-inline" />
                       ) : (
-                        <span className="sp-contact-val">{profileData.gender}</span>
+                        <span className="sp-contact-val">{profileData.student_type || '-'}</span>
                       )}
                     </div>
                     <div className="sp-contact-item">
-                      <span className="sp-contact-label">Nationality</span>
+                      <span className="sp-contact-label">Card ID</span>
                       {isEditing ? (
-                        <input name="nationality" value={profileData.nationality} onChange={handleInputChange} className="edit-input-inline" />
+                        <input name="student_card_id" value={profileData.student_card_id} onChange={handleInputChange} className="edit-input-inline" />
                       ) : (
-                        <span className="sp-contact-val">{profileData.nationality}</span>
-                      )}
-                    </div>
-                    <div className="sp-contact-item">
-                      <span className="sp-contact-label">Availability</span>
-                      {isEditing ? (
-                        <input name="availability" value={profileData.availability} onChange={handleInputChange} className="edit-input-inline" />
-                      ) : (
-                        <span className="sp-contact-val">{profileData.availability}</span>
+                        <span className="sp-contact-val">{profileData.student_card_id || '-'}</span>
                       )}
                     </div>
                   </div>
@@ -290,23 +322,27 @@ const StudentProfileEdit = () => {
                     <div className="sp-card-title">Professional Experience</div>
                     <button className="sp-btn-outline" style={{ padding: '6px 12px', fontSize: '12px' }}>+ Add Experience</button>
                   </div>
-                  {[
-                    { initials: 'NT', title: 'Frontend Intern', company: 'NafTech Inc. · Oran', date: 'Jun 2024 – Sep 2024', desc: 'Built React components for the company\'s internal dashboard. Collaborated with backend team on REST API integration.' },
-                    { initials: 'FT', title: 'Web Dev Freelancer', company: 'Freelance · Remote', date: 'Jan 2024 – May 2024', desc: 'Developed landing pages and e-commerce sites for local businesses using React and Tailwind CSS.' },
-                  ].map(e => (
-                    <div className="sp-timeline-item" key={e.title}>
-                      <div className="sp-timeline-icon">{e.initials}</div>
-                      <div className="sp-timeline-info">
-                        <div className="sp-timeline-title">
-                          {e.title}
-                          <button className="edit-icon-btn-small">✎</button>
+                  {profileData.experiences && profileData.experiences.map((e, i) => {
+                    const title = typeof e === 'string' ? e : e.title;
+                    const company = typeof e === 'string' ? '' : e.company;
+                    const duration = typeof e === 'string' ? '' : e.duration;
+                    const desc = typeof e === 'string' ? '' : e.description;
+                    const expInitials = title ? title.substring(0, 2).toUpperCase() : 'EX';
+                    return (
+                      <div className="sp-timeline-item" key={i}>
+                        <div className="sp-timeline-icon">{expInitials}</div>
+                        <div className="sp-timeline-info">
+                          <div className="sp-timeline-title">
+                            {title}
+                            <button className="edit-icon-btn-small">✎</button>
+                          </div>
+                          <div className="sp-timeline-sub">{company}</div>
+                          <div className="sp-timeline-date">{duration}</div>
+                          <div className="sp-timeline-desc">{desc}</div>
                         </div>
-                        <div className="sp-timeline-sub">{e.company}</div>
-                        <div className="sp-timeline-date">{e.date}</div>
-                        <div className="sp-timeline-desc">{e.desc}</div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </>
               )}
 
@@ -339,22 +375,31 @@ const StudentProfileEdit = () => {
               {activeTab === 'cv' && (
                 <div className="cv-preview-tab">
                   <div className="sp-card-title" style={{ marginBottom: '1.5rem' }}>Your Generated CV</div>
-                  <div className="cv-preview-placeholder">
-                    <div className="cv-placeholder-img">📄</div>
-                    <h3>CV_Amine_Khelifi_2026.pdf</h3>
-                    <p>Last updated 2 days ago</p>
-                    <div className="cv-actions">
-                      <button className="sp-btn-primary" onClick={() => navigate('/cv-builder')}>Edit in CV Builder</button>
-                      <button className="sp-btn-outline">Download PDF</button>
+                  {profileData.cv_url ? (
+                    <div className="cv-preview-placeholder">
+                      <div className="cv-placeholder-img">📄</div>
+                      <h3>{profileData.cv_url.split('/').pop()}</h3>
+                      <p>Saved in your profile</p>
+                      <div className="cv-actions">
+                        <button className="sp-btn-primary" onClick={() => navigate('/cv-builder')}>Edit in CV Builder</button>
+                        <a href={`http://127.0.0.1:8000${profileData.cv_url}`} target="_blank" rel="noreferrer" className="sp-btn-outline" style={{textDecoration:'none', color:'inherit'}}>View PDF</a>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="cv-preview-placeholder">
+                      <p>You have not generated a CV yet.</p>
+                      <button className="sp-btn-primary" onClick={() => navigate('/cv-builder')}>Create CV Now</button>
+                    </div>
+                  )}
                 </div>
               )}
 
             </div>
           </div>
         </div>
-      </div>
+        </div>
+        </div>
+      </main>
     </div>
   )
 }

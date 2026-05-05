@@ -8,7 +8,17 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
+    const [user, setUser] = useState(() => {
+        const token = localStorage.getItem('access_token');
+        if (token) {
+            return {
+                role: localStorage.getItem('role'),
+                name: localStorage.getItem('full_name'),
+                email: localStorage.getItem('email'),
+            };
+        }
+        return null;
+    });
     const navigate = useNavigate();
 
     const login = (userData) => {
@@ -20,6 +30,10 @@ export const AuthProvider = ({ children }) => {
 
     const logout = () => {
         setUser(null);
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('role');
+        localStorage.removeItem('full_name');
+        localStorage.removeItem('email');
         navigate('/signin');
     };
 

@@ -1,21 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { getPendingApplications, validateApplication } from '../../api';
 import UnivSidebar from '../UnifiedLayouts/UnivSidebar';
 import '../UnivDash/UnivDash.css';
 import './UnivPages.css';
 
-const initialPending = [
-  { id: 1, initials: 'AK', color: 'blue', name: 'Amine Khelifi', company: 'Frontend Intern @ Sonatrach Digital', detail: 'Alger · Présentiel · 3 months · L3 Informatique', appliedDate: '2024-04-12' },
-  { id: 2, initials: 'SR', color: 'teal', name: 'Sara Rahmani', company: 'Full Stack Intern @ NafTech', detail: 'Oran · Hybride · 2 months · M1 GL', appliedDate: '2024-04-10' },
-  { id: 3, initials: 'YB', color: 'purple', name: 'Yacine Belkacem', company: 'Data Intern @ DZTech', detail: 'Constantine · Distanciel · 4 months · L3 Info', appliedDate: '2024-04-08' },
-  { id: 4, initials: 'LM', color: 'amber', name: 'Lina Mansouri', company: 'Backend Intern @ Mobilis', detail: 'Alger · Présentiel · 6 months · M2 SI', appliedDate: '2024-04-15' },
-];
+
 
 const avMap = { blue: 'av-blue', teal: 'av-teal', purple: 'av-purple', amber: 'av-amber' };
 
 const UnivValidations = () => {
-  const [pendingList, setPendingList] = useState(initialPending);
+  const [pendingList, setPendingList] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleAction = (id) => setPendingList(prev => prev.filter(item => item.id !== id));
+  const fetchPending = async () => {
+    try {
+      const data = await getPendingApplications();
+      setPendingList(data);
+    } catch (error) {
+      console.error('Error fetching pending applications:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPending();
+  }, []);
+
+  const handleAction = async (id, status) => {
+    try {
+      await validateApplication(id, { status });
+      setPendingList(prev => prev.filter(item => item.id !== id));
+    } catch (err) {
+      alert('Failed to update application status.');
+    }
+  };
 
   return (
     <div className="db">
@@ -26,24 +45,36 @@ const UnivValidations = () => {
         </header>
 
         <div className="univ-pages-container">
-          {pendingList.map(p => (
-            <div key={p.id} className="univ-card univ-val-card">
-              <div className="univ-card-row">
-                <div className={`val-av ${avMap[p.color]}`}>{p.initials}</div>
-                <div className="univ-val-info">
-                  <h3>{p.name}</h3>
-                  <p className="univ-val-co">{p.company}</p>
-                  <p className="univ-val-meta">{p.detail}</p>
-                  <p className="univ-val-date">Applied on {p.appliedDate}</p>
-                </div>
-                <div className="univ-val-actions">
-                  <button className="btn-validate" onClick={() => handleAction(p.id)}>Validate</button>
-                  <button className="btn-reject" onClick={() => handleAction(p.id)}>Reject</button>
+          {loading ? <p style={{textAlign: 'center', padding: '20px'}}>Loading...</p> : null}
+          {pendingList.map(p => {
+            const studentName = p.student?.full_name || 'Student';
+            const initials = studentName.substring(0, 2).toUpperCase();
+            const colorKeys = ['blue', 'teal', 'purple', 'amber'];
+            const colorObj = colorKeys[p.id % colorKeys.length];
+            const companyName = p.offer?.company?.company_name || 'Company';
+            const offerTitle = p.offer?.title || 'Offer';
+            const detail = `${p.offer?.location || 'Alger'} · ${p.offer?.work_model || 'Présentiel'} · ${p.offer?.duration || 3} months`;
+            const appliedDate = new Date(p.applied_at).toLocaleDateString();
+
+            return (
+              <div key={p.id} className="univ-card univ-val-card">
+                <div className="univ-card-row">
+                  <div className={`val-av av-${colorObj}`}>{initials}</div>
+                  <div className="univ-val-info">
+                    <h3>{studentName}</h3>
+                    <p className="univ-val-co">{offerTitle} @ {companyName}</p>
+                    <p className="univ-val-meta">{detail}</p>
+                    <p className="univ-val-date">Applied on {appliedDate}</p>
+                  </div>
+                  <div className="univ-val-actions">
+                    <button className="btn-validate" onClick={() => handleAction(p.id, 'validated')}>Validate</button>
+                    <button className="btn-reject" onClick={() => handleAction(p.id, 'rejected')}>Reject</button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-          {pendingList.length === 0 && <p className="empty-msg">No pending validations.</p>}
+            );
+          })}
+          {pendingList.length === 0 && !loading && <p className="empty-msg">No pending validations.</p>}
         </div>
       </main>
     </div>

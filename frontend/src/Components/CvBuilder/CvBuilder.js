@@ -1,41 +1,129 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../Context/AuthContext';
+import { getCV, saveCV, downloadCV } from '../../api';
 import './CvBuilder.css';
 
 const CvBuilder = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
-    fullName: 'Amine Khelifi',
-    profession: 'Web Development',
-    email: 'amine.k@email.com',
-    phone: '0555 12 34 56',
-    wilaya: 'Alger',
-    university: 'Univ. Alger 1',
-    aboutMe: 'Passionate software engineering student with experience in web development.',
+    fullName: user?.name || '',
+    profession: '',
+    email: user?.email || '',
+    phone: '',
+    wilaya: '',
+    university: '',
+    aboutMe: '',
     education: {
-      university: 'Univ. Alger 1',
-      major: 'Computer Science',
-      specialty: 'Software Engineering',
-      graduationYear: '2026'
+      university: '',
+      major: '',
+      specialty: '',
+      graduationYear: ''
     },
-    skills: [
-      { name: 'React', level: 90 },
-      { name: 'Node.js', level: 85 }
-    ],
-    languages: [
-      { name: 'Arabic', level: 100 },
-      { name: 'French', level: 80 },
-      { name: 'English', level: 70 }
-    ],
-    experiences: [
-      { title: 'Frontend Intern', company: 'NafTech', duration: '3 months', desc: 'Worked on React UI development.' }
-    ],
-    certifications: 'React Certification, Node.js Expert',
+    skills: [],
+    languages: [],
+    experiences: [],
+    certifications: '',
     links: {
-      github: 'github.com/aminek',
-      portfolio: 'aminek.dev'
+      github: '',
+      portfolio: ''
     }
   });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCV = async () => {
+      try {
+        const data = await getCV();
+        if (data && Object.keys(data).length > 0) {
+          setFormData({
+            fullName: user?.name || '', 
+            profession: data.speciality || '',
+            email: user?.email || '',
+            phone: data.phone || '',
+            wilaya: data.wilaya || '',
+            aboutMe: data.bio || '',
+            education: {
+              university: data.university || '',
+              major: data.major || '',
+              specialty: data.speciality || '',
+              graduationYear: data.graduation_year || ''
+            },
+            skills: (data.skills || []).map(s => ({ name: s.name || s, level: s.percentage || 50 })),
+            languages: (data.languages || []).map(l => ({ name: l.name || l, level: l.percentage || 50 })),
+            experiences: (data.experiences || []).map(e => ({ 
+              title: e.title || '', 
+              company: e.company || '', 
+              duration: e.duration || '', 
+              desc: e.description || '' 
+            })),
+            certifications: Array.isArray(data.certifications) ? data.certifications.join(', ') : (data.certifications || ''),
+            links: {
+              github: data.github_link || '',
+              portfolio: data.portfolio_link || ''
+            }
+          });
+        }
+      } catch (err) {
+        console.error('Error fetching CV:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCV();
+  }, []);
+
+  const handleSave = async () => {
+    try {
+      // Map frontend structure to backend expected fields
+      const payload = {
+        bio: formData.aboutMe,
+        wilaya: formData.wilaya,
+        phone: formData.phone,
+        university: formData.education.university,
+        major: formData.education.major,
+        speciality: formData.education.specialty,
+        graduation_year: formData.education.graduationYear,
+        github_link: formData.links.github,
+        portfolio_link: formData.links.portfolio,
+        // Map 'level' to 'percentage' for backend
+        skills: formData.skills.map(s => ({ name: s.name, percentage: s.level })),
+        languages: formData.languages.map(l => ({ name: l.name, percentage: l.level })),
+        experiences: formData.experiences.map(e => ({ 
+          title: e.title, 
+          company: e.company, 
+          duration: e.duration, 
+          description: e.desc 
+        })),
+        certifications: Array.isArray(formData.certifications) 
+          ? formData.certifications 
+          : formData.certifications.split(',').map(c => c.trim()).filter(c => c)
+      };
+
+      await saveCV(payload);
+      alert('CV saved successfully!');
+    } catch (err) {
+      console.error('Error saving CV:', err);
+      alert('Failed to save CV. Check console for details.');
+    }
+  };
+
+  const handleDownload = async () => {
+    try {
+      const blob = await downloadCV();
+      const url = window.URL.createObjectURL(new Blob([blob]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'My_CV.pdf');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      console.error('Error downloading CV:', err);
+      alert('Failed to download CV. Make sure you saved it first.');
+    }
+  };
 
   const handleChange = (e, section, field, index) => {
     const { name, value } = e.target;
@@ -58,17 +146,29 @@ const CvBuilder = () => {
     setFormData({ ...formData, [section]: [...formData[section], item] });
   };
 
+  if (loading) return <div style={{ padding: '50px', textAlign: 'center' }}>Loading CV Builder...</div>
+
   return (
     <div className="cv-builder-container">
       {/* Main Content: Form */}
       <main className="cv-main">
         <div className="cv-header-actions">
-          <button className="cv-back-btn" onClick={() => navigate('/student-dashboard')}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M19 12H5M12 19l-7-7 7-7" />
-            </svg>
-            Back to Dashboard
-          </button>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button className="cv-back-btn" onClick={() => navigate('/student-dashboard')}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+              </svg>
+              Back to Dashboard
+            </button>
+            <button className="cv-save-btn" onClick={handleSave} style={{ backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '6px', padding: '0 15px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                <polyline points="17 21 17 13 7 13 7 21" />
+                <polyline points="7 3 7 8 15 8" />
+              </svg>
+              Save CV
+            </button>
+          </div>
           <div className="cv-sidebar-title">CV Builder</div>
         </div>
 
@@ -170,7 +270,7 @@ const CvBuilder = () => {
           </div>
 
           <div className="cv-form-footer">
-            <button className="cv-download-btn-middle">
+            <button className="cv-download-btn-middle" onClick={handleDownload}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
               </svg>

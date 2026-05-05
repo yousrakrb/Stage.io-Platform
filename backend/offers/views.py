@@ -10,65 +10,72 @@ def create_offer(request):
     if not user:
         return Response({'error': 'Unauthorized'}, status=status.HTTP_401_UNAUTHORIZED)
     
-    if user['role'] != 'company':
+    if user.role != 'company':
         return Response({'error': 'Only companies can create offers'}, status=status.HTTP_403_FORBIDDEN)
     
     data = request.data
-    offer = Offer(
-        company_id=str(user.id),
-        title=data['title'],
-        description=data['description'],
-        required_skills=data.get('required_skills', []),
-        wilaya=data['wilaya'],
-        type=data['type'],
-        duration=data['duration']
-    )
-    offer.save()
+    try:
+        offer = Offer(
+            company_id=str(user.id),
+            title=data.get('title'),
+            description=data.get('description'),
+            required_skills=data.get('required_skills', []),
+            wilaya=data.get('wilaya'),
+            type=data.get('type'),
+            duration=data.get('duration')
+        )
+        offer.save()
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
     # notify all students who follow this comapny 
     from follows.models import Follow
     from notifications.models import Notification
-    from users.models import CompanyProfile
+    from users.models import CompanyProfile, User as UserModel
     from django.core.mail import send_mail
     from django.conf import settings
     
+    try:
+        company_profile = CompanyProfile.objects(user_id=str(user.id)).first()
+        company_name = company_profile.company_name if company_profile else user.full_name
+        followers = Follow.objects(company_id=str(user.id))
+        
+        for follow in followers:
+            try:
+                # notification in the dashboard 
+                Notification(
+                    recipient_id=follow.student_id,
+                    type='new_offer',
+                    application_id=str(offer.id),
+                    message=f'{company_name} posted a new offer: {offer.title}'
+                ).save()
 
-    company_profile = CompanyProfile.objects(user_id=str(user.id)).first()
-    company_name = company_profile.company_name if company_profile else user.full_name
-    followers = Follow.objects(company_id=str(user.id))
-    for follow in followers:
-        # notification in the dashboard 
-        Notification(
-            recipient_id=follow.student_id,
-            type='new_offer',
-            application_id=str(offer.id),
-            message=f'{user.full_name} posted a new offer: {offer.title}'
+                # send mail to student 
+                student = UserModel.objects(id=follow.student_id).first()
+                if student and student.email:
+                    send_mail(
+                        subject=f'New Offer Posted from {company_name}!',
+                        message=f'''
+                        Dear {student.full_name},
+                        Good news! {company_name}, a company you follow on Stag.io,
+                        has just published a new internship offer:
+                        Offer: {offer.title}
+                        Duration: {offer.duration}
+                        Wilaya: {offer.wilaya}
 
-        ).save()
+                        Login to Stag.io to see the full details and apply!
 
-        # send mail to student 
-    from users.models import User as UserModel
-    student = UserModel.objects(id=follow.student_id).first()
-    if student:
-            send_mail(
-                subject=f'New Offer Posted from {company_name}!',
-                message=f'''
-                Dear {student.full_name},
-                Good news! {company_name}, a company you follow on Stag.io,
-                has just published a new internship offer:
-                Offer: {offer.title}
-                Duration: {offer.duration}
-                Wilaya: {offer.wilaya}
-
-                Login to Stag.io to see the full details and applu!
-
-                Best regards,
-                Stagio Platform 
-                ''',
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[student.email],
-                    fail_silently=True,
-            )   
+                        Best regards,
+                        Stagio Platform 
+                        ''',
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        recipient_list=[student.email],
+                        fail_silently=True,
+                    )   
+            except Exception as e:
+                print(f"Error notifying follower {follow.student_id}: {e}")
+    except Exception as e:
+        print(f"Error in notification logic: {e}")
     
 
     return Response({'message': 'Offer created successfully', 'offer_id': str(offer.id)}, status=status.HTTP_201_CREATED)
@@ -147,3 +154,24 @@ def delete_offer(request, offer_id):
     
     offer.delete()
     return Response({'message': 'Offer deleted successfully'})
+
+@api_view(['GET'])
+def get_my_offers(request):
+    user = get_user_from_token(request)
+    if not user or user.role != 'company':
+        return Response({'error': 'Unauthorized'}, status=status.HTTP_401_UNAUTHORIZED)
+    
+    offers = Offer.objects(company_id=str(user.id))
+    result = []
+    for offer in offers:
+        result.append({
+            'id': str(offer.id),
+            'title': offer.title,
+            'description': offer.description,
+            'required_skills': offer.required_skills,
+            'wilaya': offer.wilaya,
+            'type': offer.type,
+            'duration': offer.duration,
+            'created_at': str(offer.created_at)
+        })
+    return Response(result)

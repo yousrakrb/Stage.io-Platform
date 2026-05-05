@@ -10,6 +10,7 @@ import Testimonials from './Components/Testimonials/Testimonials'
 import Contact from './Components/Contact/Contact'
 import Footer from './Components/Footer/Footer'
 import SignIn from './Components/SignIn/signin'
+import LoginExample from './LoginExample'
 
 import DashboardWrapper from './Components/UnifiedLayouts/DashboardWrapper'
 import ProfileWrapper from './Components/UnifiedLayouts/ProfileWrapper'
@@ -31,6 +32,7 @@ import StudentProfileEdit from './Components/StudentProfile/StudentProfileEdit'
 import CvBuilder from './Components/CvBuilder/CvBuilder'
 import StudentApplications from './Components/StudentPages/StudentApplications'
 import StudentMatches from './Components/StudentPages/StudentMatches'
+import StudentOffers from './Components/StudentPages/StudentOffers'
 import UnivDashboard from './Components/UnivDash/UnivDash'
 import UnivProfile from './Components/UnivProfile/UnivProfile'
 import UnivValidations from './Components/UnivPages/UnivValidations'
@@ -44,20 +46,21 @@ const App = () => {
       {/* Main page */}
       <Route path='/' element={
         <div>
-          <Navbar/>
-          <Hero/>
+          <Navbar />
+          <Hero />
           <div className='container'>
-            <Programs/>
-            <About/>
-            <Testimonials/>
-            <Contact/>
+            <Programs />
+            <About />
+            <Testimonials />
+            <Contact />
           </div>
-          <Footer/>
+          <Footer />
         </div>
-      }/>
+      } />
 
       {/* Login page */}
       <Route path='/signin' element={<SignIn />} />
+      <Route path='/test-login' element={<LoginExample />} />
 
       {/* Unified Dynamic Routes */}
       <Route path='/dashboard' element={<DashboardWrapper />} />
@@ -74,13 +77,16 @@ const App = () => {
 
       {/* Company pages – manage their own sidebar internally */}
       <Route path='/company-dashboard' element={<CompanyDashboard />} />
+      <Route path='/company-profile/:id' element={<CompanyProfile />} />
       <Route path='/company-profile' element={<CompanyProfile />} />
       <Route path='/student-dashboard' element={<StudentDashboard />} />
+      <Route path='/student-profile/:id' element={<StudentProfile />} />
       <Route path='/student-profile' element={<StudentProfile />} />
       <Route path='/my-profile' element={<StudentProfileEdit />} />
       <Route path='/cv-builder' element={<CvBuilder />} />
       <Route path='/student-applications' element={<StudentApplications />} />
       <Route path='/student-matches' element={<StudentMatches />} />
+      <Route path='/student-offers' element={<StudentOffers />} />
       <Route path='/univ-dashboard' element={<UnivDashboard />} />
       <Route path='/univ-profile' element={<UnivProfile />} />
       <Route path='/univ-validations' element={<UnivValidations />} />

@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useAuth } from '../../Context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import './signin.css'
-import { login as loginRequest } from '../../auth'
+import { login as loginRequest, registerUser, verifyEmail } from '../../api'
 
 const ROLES = ['Student', 'Company']
 
@@ -31,12 +31,13 @@ const SignIn = () => {
   const [role, setRole] = useState('')
   const [studentType, setStudentType] = useState('') // 'independent' or 'university'
   const [confirmCode, setConfirmCode] = useState('')
+  const [registeredUserId, setRegisteredUserId] = useState('')
 
   const [studentData, setStudentData] = useState({
     studentId: '', phone: '', univEmail: '', password: '', repeatPassword: ''
   })
   const [companyData, setCompanyData] = useState({
-    companyEmail: '', location: '', domain: '', directorName: '', directorEmail: '', directorPhone: ''
+    companyEmail: '', location: '', domain: '', directorName: '', directorEmail: '', directorPhone: '', password: '', repeatPassword: ''
   })
 
   const switchToSignUp = () => { setMode('sign-up-mode'); setStep(1); setRole(''); setStudentType('') }
@@ -45,16 +46,17 @@ const SignIn = () => {
   const handleSignIn = async (e) => {
     e.preventDefault()
     try {
-      const data = await loginRequest(signInData.email, signInData.password)
+      const data = await loginRequest({ email: signInData.email, password: signInData.password })
       login({ role: data.role, email: signInData.email, name: data.full_name })
 
       // Redirect based on role
-      if (data.role === 'student') navigate('/home')
-      else if (data.role === 'company') navigate('/home')
-      else if (data.role === 'administration') navigate('/home')
+      if (data.role === 'student') navigate('/dashboard')
+      else if (data.role === 'company') navigate('/dashboard')
+      else if (data.role === 'administration') navigate('/dashboard')
 
     } catch (error) {
-      alert(error.message || 'Invalid email or password. Please try again.')
+      const errorMsg = error.response?.data?.error || error.message || 'Invalid email or password. Please try again.'
+      alert(errorMsg)
       console.error('Login error:', error)
     }
   }
@@ -83,21 +85,67 @@ const SignIn = () => {
     return ''
   }
 
-  const handleSignUp = (e) => {
+  const handleSignUp = async (e) => {
     e.preventDefault()
-    if (role === 'Student' && studentData.password !== studentData.repeatPassword) {
-      alert('Passwords do not match!')
-      return
+    
+    let payload = {}
+    
+    if (role === 'Student') {
+      if (studentData.password !== studentData.repeatPassword) {
+        alert('Passwords do not match!')
+        return
+      }
+      payload = {
+        full_name: fullName,
+        email: studentData.univEmail,
+        password: studentData.password,
+        confirm_password: studentData.repeatPassword,
+        role: 'student',
+        student_type: studentType,
+        phone: studentData.phone,
+        student_card_id: studentType === 'university' ? studentData.studentId : ''
+      }
+    } else if (role === 'Company') {
+      if (companyData.password !== companyData.repeatPassword) {
+        alert('Passwords do not match!')
+        return
+      }
+      payload = {
+        full_name: fullName,
+        email: companyData.companyEmail,
+        password: companyData.password,
+        confirm_password: companyData.repeatPassword,
+        role: 'company',
+        director_full_name: companyData.directorName,
+        director_email: companyData.directorEmail,
+        director_phone: companyData.directorPhone,
+        phone: companyData.directorPhone
+      }
     }
-    // All roles now go to step 4 for email confirmation
-    console.log('Sending confirmation code to:', getConfirmEmail())
-    setStep(4)
+
+    try {
+      const data = await registerUser(payload)
+      setRegisteredUserId(data.user_id)
+      console.log('Sending confirmation code to:', getConfirmEmail())
+      setStep(4)
+    } catch (error) {
+      const errorMsg = error.response?.data?.error || error.message || 'Registration failed. Please try again.'
+      alert(errorMsg)
+      console.error('Registration error:', error)
+    }
   }
 
-  const handleConfirmCode = (e) => {
+  const handleConfirmCode = async (e) => {
     e.preventDefault()
-    // Set user and proceed to unified dashboard
-    login({ role: role, email: getConfirmEmail(), name: fullName })
+    try {
+      const data = await verifyEmail({ user_id: registeredUserId, code: confirmCode })
+      alert('Email verified successfully! You can now log in.')
+      switchToSignIn()
+    } catch (error) {
+      const errorMsg = error.response?.data?.error || error.message || 'Verification failed. Please try again.'
+      alert(errorMsg)
+      console.error('Verification error:', error)
+    }
   }
 
   // Step labels — all roles now have 4 steps
@@ -265,6 +313,12 @@ const SignIn = () => {
                     <input type="tel" placeholder="Director Phone Number"
                       value={companyData.directorPhone}
                       onChange={(e) => setCompanyData({ ...companyData, directorPhone: e.target.value })} required />
+                    <input type="password" placeholder="Password"
+                      value={companyData.password}
+                      onChange={(e) => setCompanyData({ ...companyData, password: e.target.value })} required />
+                    <input type="password" placeholder="Repeat Password"
+                      value={companyData.repeatPassword}
+                      onChange={(e) => setCompanyData({ ...companyData, repeatPassword: e.target.value })} required />
                   </>)}
 
                   <button type="submit" className="btn-submit" style={{ marginTop: '6px' }}>

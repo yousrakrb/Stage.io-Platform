@@ -17,15 +17,16 @@ const DashboardWrapper = () => {
 
     if (!user) return null;
 
-    switch (user.role) {
-        case 'Company':
+    switch (user.role?.toLowerCase()) {
+        case 'company':
             return <CompanyDashboard />;
-        case 'Student':
+        case 'student':
             return <StudentDashboard />;
-        case 'University':
+        case 'university':
+        case 'administration':
             return <UnivDashboard />;
         default:
-            return <div>Invalid Role Detected</div>;
+            return <div>Invalid Role Detected: {user.role}</div>;
     }
 };
 

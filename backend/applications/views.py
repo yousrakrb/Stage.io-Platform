@@ -102,6 +102,7 @@ def get_company_applications(request):
         offer = Offer.objects(id=app.offer_id).first()
         result.append({
             'id' : str(app.id),
+            'student_id': str(student.id) if student else '',
             'student_name': student.full_name if student else '',
             'student_email': student.email if student else '',
             'offer_title': offer.title if offer else '',

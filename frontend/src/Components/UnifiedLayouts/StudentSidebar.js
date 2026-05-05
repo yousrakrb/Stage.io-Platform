@@ -8,7 +8,7 @@ const StudentSidebar = () => {
 
   const getActiveId = () => {
     if (location.pathname === '/student-dashboard') return 'overview';
-    if (location.pathname === '/student-matches') return 'offers';
+    if (location.pathname === '/student-offers') return 'offers';
     if (location.pathname === '/student-applications') return 'applications';
     if (location.pathname === '/cv-builder') return 'cv';
     if (location.pathname === '/student-profile' || location.pathname === '/my-profile') return 'profile';
@@ -19,7 +19,7 @@ const StudentSidebar = () => {
 
   const navItems = [
     { id: 'overview', path: '/student-dashboard', icon: <><rect x="1" y="1" width="6" height="6" rx="1.5" fill="currentColor"/><rect x="11" y="1" width="6" height="6" rx="1.5" fill="currentColor"/><rect x="1" y="11" width="6" height="6" rx="1.5" fill="currentColor"/><rect x="11" y="11" width="6" height="6" rx="1.5" fill="currentColor"/></> },
-    { id: 'offers', path: '/student-matches', icon: <><circle cx="9" cy="9" r="7" stroke="currentColor" strokeWidth="1.5"/><path d="M9 5v4l3 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></> },
+    { id: 'offers', path: '/student-offers', icon: <><circle cx="9" cy="9" r="7" stroke="currentColor" strokeWidth="1.5"/><path d="M9 5v4l3 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></> },
     { id: 'applications', path: '/student-applications', icon: <><path d="M2 14l4-5 3 3 3-4 4 6H2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/></> },
     { id: 'cv', path: '/cv-builder', icon: <><rect x="3" y="2" width="12" height="14" rx="2" stroke="currentColor" strokeWidth="1.5"/><path d="M6 6h6M6 9h6M6 12h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></> },
   ];
